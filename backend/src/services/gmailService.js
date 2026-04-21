@@ -12,9 +12,9 @@ const TOKEN_PATH = path.join(__dirname, '../utils/token.json');
 class GmailService {
   constructor() {
     this.oauth2Client = new google.auth.OAuth2(
-      process.env.CLIENT_ID,
-      process.env.CLIENT_SECRET,
-      process.env.REDIRECT_URI || 'http://localhost:3001/api/external/oauth2callback'
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/api/external/oauth2callback'
     );
   }
 

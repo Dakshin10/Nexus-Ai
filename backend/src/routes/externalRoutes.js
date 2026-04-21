@@ -5,6 +5,7 @@ const express = require('express');
 const router = express.Router();
 const notesController = require('../controllers/notesController');
 const documentController = require('../controllers/documentController');
+const externalController = require('../controllers/externalController');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 

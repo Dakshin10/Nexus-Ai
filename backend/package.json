@@ -10,11 +10,14 @@
   "dependencies": {
     "@notionhq/client": "^5.20.0",
     "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
     "express": "^4.18.2",
+    "googleapis": "^171.4.0",
     "mammoth": "^1.12.0",
     "multer": "^2.1.1",
+    "officeparser": "^6.1.0",
     "pdf-parse": "^2.4.5",
-    "pptx-parser": "^1.1.7-beta.9"
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
