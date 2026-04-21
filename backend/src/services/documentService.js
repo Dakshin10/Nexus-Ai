@@ -5,7 +5,7 @@
 const fs = require('fs');
 const pdf = require('pdf-parse');
 const mammoth = require('mammoth');
-const pptxParser = require('pptx-parser');
+const pptxParser = require('officeparser');
 const logger = require('../utils/logger');
 
 class DocumentService {
@@ -51,9 +51,12 @@ class DocumentService {
   }
 
   async parsePPTX(filePath) {
-    // Note: pptx-parser usage can vary, but generally extracts text per slide
-    const data = await pptxParser.parse(filePath);
-    return data.map(slide => slide.text).join('\n');
+    return new Promise((resolve, reject) => {
+      pptxParser.parseOffice(filePath, (data, err) => {
+        if (err) return reject(err);
+        resolve(data);
+      });
+    });
   }
 
   /**

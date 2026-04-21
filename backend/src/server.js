@@ -2,6 +2,7 @@
  * NEXUS Backend Server
  * Entry point for the Cognitive Stream Engine.
  */
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const streamRoutes = require('./routes/streamRoutes');
@@ -16,7 +17,6 @@ const externalRoutes = require('./routes/externalRoutes');
 const onboardingRoutes = require('./routes/onboardingRoutes');
 const agentRoutes = require('./routes/agentRoutes');
 const evaluationRoutes = require('./routes/evaluationRoutes');
-
 
 const systemRoutes = require('./routes/systemRoutes');
 const logger = require('./utils/logger');
@@ -45,20 +45,8 @@ app.use('/api/system', systemRoutes);
 app.use('/api/proactive', proactiveRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 
-
 // Start Proactive Intelligence Loop (Every 60s)
 proactiveService.start(60000);
-
-
-
-
-
-
-
-
-
-
-
 
 // Health Check
 app.get('/health', (req, res) => res.status(200).send('OK'));
