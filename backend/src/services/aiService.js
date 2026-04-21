@@ -1,120 +1,86 @@
 /**
  * AI Service
- * Core bridge to the LLM with strict JSON enforcement, retry logic, and timeouts.
+ * Core bridge to OpenAI with real extraction logic and Anti-Gravity prompting.
  */
+const OpenAI = require('openai');
 const logger = require('../utils/logger');
 
-async function runAI({ prompt, input, schema, stage = 'ai-service' }) {
-  const startTime = logger.time();
-  
-  // Mocking the AI call. In production, this would use google.genai or similar SDK.
-  // We simulate a slightly delayed JSON response to demonstrate timeout and retries.
-  const callModel = async (attempt = 1) => {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error(`AI Request timed out after 4000ms`));
-      }, 4000);
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
-      // Simulate network latency
-      setTimeout(() => {
-        clearTimeout(timeout);
-        
-        // Mocked logic for the demonstration
-        // Normally, this would call the actual LLM with the prompt + input
-        try {
-          const mockResponse = generateMockResponse(stage, input);
-          resolve(mockResponse);
-        } catch (e) {
-          if (attempt === 1) {
-            logger.log(stage, "Retrying AI call due to invalid JSON/format...");
-            resolve(callModel(2));
-          } else {
-            reject(e);
-          }
-        }
-      }, 150); 
-    });
-  };
+/**
+ * Generic AI execution wrapper
+ */
+async function runAI({ prompt, input, systemPrompt = 'You are a cognitive AI assistant.', stage = 'ai-service' }) {
+  const startTime = logger.time();
 
   try {
-    const result = await callModel();
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `${prompt}\n\nInput Data: ${JSON.stringify(input)}` }
+      ],
+      response_format: { type: "json_object" }
+    });
+
+    const result = JSON.parse(response.choices[0].message.content);
     const duration = logger.timeEnd(startTime);
-    logger.log(stage, `Successfully completed AI processing`, duration);
+    logger.log(stage, `AI processing completed in ${duration}ms`);
     return result;
   } catch (error) {
-    logger.error(stage, `AI Processing failed: ${error.message}`);
+    logger.error(stage, `AI processing failed: ${error.message}`);
     throw error;
   }
 }
 
 /**
- * MOCK DATA GENERATOR
- * To ensure the system is testable immediately.
+ * ⚡ PHASE 2 — AI UNDERSTANDING ENGINE
+ * Specialized logic for converting filtered emails into actionable tasks.
  */
-function generateMockResponse(stage, input) {
-  // Simple heuristic-based mock to simulate "intelligent" behavior
-  switch (stage) {
-    case 'decomposition':
-      return { atomic_thoughts: input.split(/[.!?]+/).filter(t => t.trim().length > 0).map(t => t.trim()) };
-    case 'classification':
-      return { classified: (input.atomic_thoughts || []).map(t => ({ text: t, type: 'task' })) };
-    case 'reasoning':
-      return { summary: 'Mocked summary', urgent: [], top_priority: 'Mocked priority', recommended_action: 'Mocked action' };
-    case 'load':
-      return { cognitive_load: { score: 50, status: 'yellow' } };
-    case 'notion-extraction': {
-      const text = `${input.title} ${input.content}`.toLowerCase();
-      const tasks = [];
+async function extractTasksFromEmails(emails) {
+  if (!emails || emails.length === 0) return [];
 
-      // Heuristic 1: Look for explicit TODOs
-      if (text.includes('todo') || text.includes('task') || text.includes('action')) {
-        tasks.push({
-          task: `Complete action items from ${input.title}`,
-          priority: 'DO_NEXT',
-          reasoning: 'Explicit task markers detected in note.',
-          deadline: null,
-          source: 'notion'
-        });
+  const systemPrompt = `
+    You are a productivity intelligence system.
+    Convert emails into actionable tasks using the provided JSON format.
+    
+    RULES:
+    - Ignore noise
+    - Extract clear actions
+    - Infer urgency (DO_NOW, DO_NEXT, LATER)
+    - Max 5 tasks total
+    
+    Output format:
+    [
+      {
+        "task": "Title of the task",
+        "priority": "DO_NOW | DO_NEXT | LATER",
+        "reasoning": "Brief explanation of why"
       }
+    ]
+  `;
 
-      // Heuristic 2: Urgency
-      if (text.includes('urgent') || text.includes('asap') || text.includes('immediately')) {
-        tasks.push({
-          task: `Address urgent matters in ${input.title}`,
-          priority: 'DO_NOW',
-          reasoning: 'High-urgency keywords detected (urgent/asap).',
-          deadline: 'ASAP',
-          source: 'notion'
-        });
-      }
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Emails: ${JSON.stringify(emails)}` }
+      ],
+      // We'll use the default format but ensure it's a valid JSON array string
+    });
 
-      // Heuristic 3: Late-stage / optional
-      if (text.includes('maybe') || text.includes('later') || text.includes('future')) {
-        tasks.push({
-          task: `Review future ideas from ${input.title}`,
-          priority: 'LATER',
-          reasoning: 'Optional or future-dated context found.',
-          deadline: 'TBD',
-          source: 'notion'
-        });
-      }
-
-      // Fallback if no heuristics match
-      if (tasks.length === 0) {
-        tasks.push({
-          task: `Analyze page: ${input.title}`,
-          priority: 'DO_NEXT',
-          reasoning: 'General page analysis for context.',
-          deadline: null,
-          source: 'notion'
-        });
-      }
-
-      return tasks.slice(0, 5); // Max 5 tasks per note
-    }
-    default:
-      return {};
+    const result = JSON.parse(response.choices[0].message.content);
+    return Array.isArray(result) ? result : [];
+  } catch (error) {
+    logger.error('ai-understanding', `Task extraction failed: ${error.message}`);
+    return [];
   }
 }
 
-module.exports = { runAI };
+module.exports = { 
+  runAI,
+  extractTasksFromEmails
+};

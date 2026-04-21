@@ -55,26 +55,24 @@ class GmailIngestionEngine {
   }
 
   /**
-   * Heuristic-based utility check
-   * @param {object} email 
+   * Phase 1 — Email Filtering Engine
+   * Strict heuristic-based filtering to remove noise and keep only actionable emails.
    */
   isUseful(email) {
     const { subject, sender, snippet } = email;
-    const content = `${subject} ${snippet}`.toLowerCase();
-    const senderLower = sender.toLowerCase();
+    const text = (subject + snippet).toLowerCase();
+    const from = sender.toLowerCase();
 
-    // 1. Spam/Marketing Keywords
-    const hasSpamKeyword = this.SPAM_KEYWORDS.some(word => content.includes(word));
-    if (hasSpamKeyword) return false;
+    const isJunk =
+      text.includes("unsubscribe") ||
+      text.includes("sale") ||
+      text.includes("offer") ||
+      from.includes("no-reply");
 
-    // 2. Sender heuristics (newsletters/automated)
-    const isAutomated = this.MARKETING_HEURISTICS.some(h => senderLower.includes(h));
-    if (isAutomated) return false;
+    const isActionable =
+      /submit|complete|review|reply|attend|schedule|important|urgent|deadline/.test(text);
 
-    // 3. Short snippet/no content
-    if (!snippet || snippet.length < 10) return false;
-
-    return true;
+    return !isJunk && isActionable;
   }
 
   /**

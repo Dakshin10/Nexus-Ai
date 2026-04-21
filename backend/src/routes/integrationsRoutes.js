@@ -7,12 +7,15 @@ const tokenStore = require('../utils/tokenStore');
  * @desc    Get status of all external integrations
  */
 router.get('/status', async (req, res) => {
+  const { userId } = req.query;
+  const targetUser = userId || 'me';
+
   try {
-    // Check Gmail (stored as 'me' in this demo)
-    const gmailConnected = await tokenStore.hasTokens('me');
+    // Check Gmail
+    const gmailConnected = await tokenStore.hasTokens(targetUser, 'gmail');
     
     // Check Notion
-    const notionConnected = !!process.env.NOTION_API_KEY;
+    const notionConnected = await tokenStore.hasTokens(targetUser, 'notion');
 
     res.json({
       gmail: gmailConnected,

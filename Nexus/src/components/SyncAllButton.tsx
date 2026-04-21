@@ -1,24 +1,32 @@
 import React, { useState } from 'react';
 import { RefreshCw, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { useSyncMutation } from '../services/api';
+import { useNexusStore } from '../store/nexusStore';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const SyncAllButton: React.FC = () => {
-  const syncMutation = useSyncMutation();
+  const { currentUser, setBucketedTasks, addLog } = useNexusStore();
+  const syncMutation = useSyncMutation(currentUser.id);
   const [showSuccess, setShowSuccess] = useState(false);
 
   const handleSync = async () => {
     try {
-      await syncMutation.mutateAsync();
+      addLog('Initiating AI-powered synchronization...', 'agent');
+      const response = await syncMutation.mutateAsync();
+      
+      if (response.results?.bucketedTasks) {
+        setBucketedTasks(response.results.bucketedTasks);
+        addLog(`Successfully extracted ${response.results.tasks_extracted} tasks using Anti-Gravity Engine.`, 'success');
+      }
+
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 5000);
     } catch (err) {
       console.error('Sync failed:', err);
+      addLog('Synchronization failed. Check backend logs.', 'info');
     }
   };
-
-  const isIdle = !syncMutation.isPending && !showSuccess && !syncMutation.isError;
 
   return (
     <div className="relative">

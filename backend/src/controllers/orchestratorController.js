@@ -27,16 +27,22 @@ async function handleOrchestrate(req, res) {
 }
 
 async function handleUnifiedSync(req, res) {
+  const { userId } = req.query;
   try {
     // This will eventually trigger the real sync logic
     // For now, it returns a successful mock to unblock the frontend
     return res.status(200).json({
       success: true,
       timestamp: new Date().toISOString(),
-      tasks: {
+      bucketedTasks: {
         doNow: [],
         doNext: [],
         later: []
+      },
+      stats: {
+        total_tasks_extracted: 0,
+        emails_scanned: 0,
+        pages_scanned: 0
       }
     });
   } catch (error) {

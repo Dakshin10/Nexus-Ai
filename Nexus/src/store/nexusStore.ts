@@ -12,6 +12,10 @@ interface NexusState {
   userInput: string;
   setUserInput: (input: string) => void;
 
+  // User Identity
+  currentUser: { id: string; name: string };
+  setCurrentUser: (user: { id: string; name: string }) => void;
+
   // Agent State
   agent: AgentState;
   setAgentStatus: (status: AgentState['status']) => void;
@@ -72,6 +76,9 @@ export const useNexusStore = create<NexusState>((set) => ({
   userInput: '',
   setUserInput: (userInput) => set({ userInput }),
 
+  currentUser: { id: 'user_nexus_1', name: 'Nexus User' },
+  setCurrentUser: (currentUser) => set({ currentUser }),
+
   agent: {
     currentStep: 'Waiting for input...',
     nextAction: 'Analyze objective',
@@ -105,9 +112,9 @@ export const useNexusStore = create<NexusState>((set) => ({
   })),
   setBucketedTasks: (bucketedTasks) => set({ bucketedTasks }),
 
-  isGmailConnected: false,
+  isGmailConnected: localStorage.getItem('gmail_connected') === 'true',
   setGmailConnected: (isGmailConnected) => set({ isGmailConnected }),
-  isNotionConnected: false,
+  isNotionConnected: localStorage.getItem('notion_connected') === 'true',
   setNotionConnected: (isNotionConnected) => set({ isNotionConnected }),
   notionPages: [],
   setNotionPages: (notionPages) => set({ notionPages }),

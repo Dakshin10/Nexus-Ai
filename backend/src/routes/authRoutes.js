@@ -12,5 +12,7 @@ router.get('/auth/:provider/callback', authController.handleCallback);
  * API Routes (Status & Sync)
  */
 router.get('/api/connectors/status', authController.getStatus);
+router.get('/api/gmail/status', authController.getGmailStatus);
+router.get('/api/notion/status', authController.getNotionStatus);
 
 module.exports = router;

@@ -3,8 +3,9 @@ const notionAIEngine = require('../engines/external/notionAIEngine');
 const logger = require('../utils/logger');
 
 exports.handleNotionConnect = async (req, res) => {
+  const { userId } = req.query;
   try {
-    const isValid = await notesService.validateConnection();
+    const isValid = await notesService.validateConnection(userId || 'system');
     if (isValid) {
       res.json({ connected: true, message: 'Notion integration ready.' });
     } else {
@@ -17,8 +18,9 @@ exports.handleNotionConnect = async (req, res) => {
 };
 
 exports.handleListPages = async (req, res) => {
+  const { userId } = req.query;
   try {
-    const pages = await notesService.listPages();
+    const pages = await notesService.listPages(userId);
     res.json(pages);
   } catch (error) {
     logger.error('notes-controller', `List Pages Error: ${error.message}`);
@@ -27,12 +29,12 @@ exports.handleListPages = async (req, res) => {
 };
 
 exports.handleNotionImport = async (req, res) => {
-  const { page_id } = req.body;
+  const { page_id, userId } = req.body;
   if (!page_id) return res.status(400).json({ error: 'page_id is required' });
 
   try {
     // 1. Fetch full content
-    const page = await notesService.fetchNotionPage(page_id);
+    const page = await notesService.fetchNotionPage(page_id, userId);
     
     // 2. Extract tasks using AI
     const tasks = await notionAIEngine.process(page);

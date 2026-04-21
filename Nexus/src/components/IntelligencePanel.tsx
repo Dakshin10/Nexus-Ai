@@ -49,10 +49,11 @@ export const IntelligencePanel: React.FC = () => {
     setNextAction,
     setSystemHealth,
     addLog,
-    autoMode
+    autoMode,
+    currentUser
   } = useNexusStore();
   
-  const { mutateAsync: syncWorkspace, isPending: isSyncing } = useNotionSync();
+  const { mutateAsync: syncWorkspace, isPending: isSyncing } = useNotionSync(currentUser.id);
 
   // Browser Notification Permission
   useEffect(() => {

@@ -47,12 +47,14 @@ app.use('/api/weekly', weeklyRoutes);
 app.use('/api/external', externalRoutes);
 app.use('/api/evaluate', evaluationRoutes);
 app.use('/api/system', systemRoutes);
+app.use('/api/system', agentRoutes);
 app.use('/api/proactive', proactiveRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/integrations/gmail', gmailRoutes);
 app.use('/api/integrations', integrationsRoutes);
 app.use('/api/integrations', syncRoutes);
 app.use('/api', uploadRoutes);
+app.use('/', authRoutes);
 
 // Start Proactive Intelligence Loop (Every 60s)
 proactiveService.start(60000);

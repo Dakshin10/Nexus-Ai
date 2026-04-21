@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@notionhq/client": "^5.20.0",
+    "axios": "^1.15.1",
     "cors": "^2.8.5",
     "dotenv": "^17.4.2",
     "express": "^4.18.2",
@@ -16,6 +17,7 @@
     "mammoth": "^1.12.0",
     "multer": "^2.1.1",
     "officeparser": "^6.1.0",
+    "openai": "^6.34.0",
     "pdf-parse": "^2.4.5",
     "uuid": "^14.0.0"
   },

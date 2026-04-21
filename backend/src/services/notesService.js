@@ -10,15 +10,35 @@ const cacheService = require('../utils/cacheService');
 
 class NotesService {
   constructor() {
-    this.notion = new Client({ auth: process.env.NOTION_API_KEY });
+    this.tokenStore = require('../utils/tokenStore');
+  }
+
+  /**
+   * Helper to initialize Notion client for a specific user
+   */
+  async getClientForUser(userId) {
+    if (!userId) throw new Error('userId is required for Notion operations');
+    
+    // Fallback to environment key if specified (e.g. for system operations)
+    if (userId === 'system' && process.env.NOTION_API_KEY) {
+      return new Client({ auth: process.env.NOTION_API_KEY });
+    }
+
+    const tokens = await this.tokenStore.getTokens(userId, 'notion');
+    if (!tokens || !tokens.access_token) {
+      throw new Error(`No Notion integration found for user: ${userId}`);
+    }
+
+    return new Client({ auth: tokens.access_token });
   }
 
   /**
    * Validate Connection on Startup
    */
-  async validateConnection() {
+  async validateConnection(userId = 'system') {
     try {
-      await this.notion.users.me({});
+      const notion = await this.getClientForUser(userId);
+      await notion.users.me({});
       console.log('[NotionService] Connection validated successfully.');
       return true;
     } catch (error) {
@@ -31,7 +51,7 @@ class NotesService {
    * Create Notion Page from Structured Task
    * @param {object} data { task, priority, source, context }
    */
-  async createTaskPage(data, attempt = 1) {
+  async createTaskPage(data, userId, attempt = 1) {
     const { task, priority, source, context } = data;
     const databaseId = process.env.NOTION_DATABASE_ID;
 
@@ -39,6 +59,8 @@ class NotesService {
       console.error('[NotionService] NOTION_DATABASE_ID is missing.');
       return null;
     }
+
+    const notion = await this.getClientForUser(userId);
 
     // 1. Generate unique hash for idempotency (email_subject + sender/source)
     const hash = crypto.createHash('md5')
@@ -56,7 +78,7 @@ class NotesService {
       }
 
       // 3. Optional: Database query as secondary check
-      const existing = await this.notion.databases.query({
+      const existing = await notion.databases.query({
         database_id: databaseId,
         filter: {
           property: 'Name',
@@ -71,7 +93,7 @@ class NotesService {
       }
 
       // 4. Create Page
-      const response = await this.notion.pages.create({
+      const response = await notion.pages.create({
         parent: { database_id: databaseId },
         properties: {
           'Name': { title: [{ text: { content: task } }] },
@@ -101,10 +123,11 @@ class NotesService {
    * List Searchable Pages from Notion
    * Uses search API and caches results.
    */
-  async listPages() {
-    const cacheKey = 'notion_pages_search';
+  async listPages(userId) {
+    const cacheKey = `notion_pages_search_${userId}`;
     
     try {
+      const notion = await this.getClientForUser(userId);
       // 1. Check Cache
       const cached = await cacheService.get(cacheKey);
       if (cached) {
@@ -113,7 +136,7 @@ class NotesService {
       }
 
       // 2. Search Notion
-      const response = await this.notion.search({
+      const response = await notion.search({
         filter: { property: 'object', value: 'page' },
         sort: { direction: 'descending', timestamp: 'last_edited_time' },
         page_size: 15
@@ -145,12 +168,13 @@ class NotesService {
   /**
    * Fetch Notion Page & Extract Content
    */
-  async fetchNotionPage(pageId) {
+  async fetchNotionPage(pageId, userId) {
     try {
-      const response = await this.notion.pages.retrieve({ page_id: pageId });
+      const notion = await this.getClientForUser(userId);
+      const response = await notion.pages.retrieve({ page_id: pageId });
       
       // Recursive block extraction
-      const content = await this.extractBlocks(pageId);
+      const content = await this.extractBlocks(pageId, notion);
       
       // Title extraction
       const titleProp = response.properties.title || Object.values(response.properties).find(p => p.type === 'title');
@@ -171,9 +195,9 @@ class NotesService {
   /**
    * Recursive Block Extractor
    */
-  async extractBlocks(blockId) {
+  async extractBlocks(blockId, notion) {
     try {
-      const blocks = await this.notion.blocks.children.list({ block_id: blockId });
+      const blocks = await notion.blocks.children.list({ block_id: blockId });
       let text = '';
 
       for (const block of blocks.results) {
@@ -184,7 +208,7 @@ class NotesService {
         
         // Handle children (nested blocks)
         if (block.has_children) {
-          const childText = await this.extractBlocks(block.id);
+          const childText = await this.extractBlocks(block.id, notion);
           text += childText;
         }
       }

@@ -99,6 +99,45 @@ exports.handleApproveAction = async (req, res) => {
   res.json(result);
 };
 
+/**
+ * ⚡ PHASE 4 — UNIFIED API
+ * Orchestrates Filtering, Understanding, and Decision layers.
+ */
+exports.handleRunIntelligence = async (req, res) => {
+  const { userId = 'user_nexus_1' } = req.body;
+
+  try {
+    logger.log('agent-controller', 'Running Phase 1: Filtering Engine...');
+    const emails = await gmailIngestionEngine.ingest({ count: 10, userId });
+
+    if (emails.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No actionable emails found after filtering.',
+        data: { doNow: [], doNext: [], later: [] }
+      });
+    }
+
+    logger.log('agent-controller', 'Running Phase 2: AI Understanding Engine...');
+    const tasks = await emailAIEngine.process(emails);
+
+    logger.log('agent-controller', 'Running Phase 3: Decision Engine...');
+    const decisions = {
+      doNow: tasks.filter(t => t.priority === 'DO_NOW'),
+      doNext: tasks.filter(t => t.priority === 'DO_NEXT'),
+      later: tasks.filter(t => t.priority === 'LATER')
+    };
+
+    res.json({
+      success: true,
+      data: decisions
+    });
+  } catch (error) {
+    logger.error('agent-controller', `Intelligence Pipeline Failed: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 exports.handleGetStatus = (req, res) => {
   const { sessionId } = req.query;
   const session = agentStore.getSession(sessionId);

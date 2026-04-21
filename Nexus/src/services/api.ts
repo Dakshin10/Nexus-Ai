@@ -34,8 +34,8 @@ export const api = {
     return res.json();
   },
 
-  getIntegrationStatus: async () => {
-    const res = await fetch(`${API_BASE}/integrations/status`);
+  getIntegrationStatus: async (userId: string) => {
+    const res = await fetch(`${API_BASE}/integrations/status?userId=${userId}`);
     return res.json();
   },
 
@@ -48,34 +48,38 @@ export const api = {
     return res.json();
   },
 
-  triggerSync: async () => {
-    const res = await fetch(`${API_BASE}/integrations/sync`, { method: 'POST' });
+  triggerSync: async (userId: string = 'user_nexus_1') => {
+    const res = await fetch(`${API_BASE}/integrations/sync`, { 
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
+    });
     return res.json();
   },
 
   // Notion
-  connectNotion: async () => {
-    const res = await fetch(`${API_BASE}/external/notion/connect`, { method: 'POST' });
+  connectNotion: async (userId: string) => {
+    const res = await fetch(`${API_BASE}/external/notion/connect?userId=${userId}`, { method: 'POST' });
     return res.json();
   },
 
-  getNotionPages: async () => {
-    const res = await fetch(`${API_BASE}/external/notion/pages`);
+  getNotionPages: async (userId: string) => {
+    const res = await fetch(`${API_BASE}/external/notion/pages?userId=${userId}`);
     return res.json();
   },
 
-  importNotionPage: async (pageId: string) => {
+  importNotionPage: async (pageId: string, userId: string) => {
     const res = await fetch(`${API_BASE}/external/notion/import`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ page_id: pageId }),
+      body: JSON.stringify({ page_id: pageId, userId }),
     });
     return res.json();
   },
   
-  syncNotionWorkspace: async () => {
+  syncNotionWorkspace: async (userId: string) => {
     try {
-      const res = await fetch(`${API_BASE}/orchestrate/unified-sync`, {
+      const res = await fetch(`${API_BASE}/orchestrate/unified-sync?userId=${userId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -96,6 +100,22 @@ export const api = {
       throw error;
     }
   },
+
+  runIntelligence: async (userId: string = 'user_nexus_1') => {
+    const res = await fetch(`${API_BASE}/system/run-intelligence`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
+    });
+    return res.json();
+  }
+};
+
+// Hooks
+export const useIntelligenceMutation = (userId: string = 'user_nexus_1') => {
+  return useMutation({
+    mutationFn: () => api.runIntelligence(userId),
+  });
 };
 
 // Hooks
@@ -107,16 +127,16 @@ export const useEmails = (analyze = false) => {
   });
 };
 
-export const useNotionSync = () => {
+export const useNotionSync = (userId: string) => {
   return useMutation({
-    mutationFn: () => api.syncNotionWorkspace(),
+    mutationFn: () => api.syncNotionWorkspace(userId),
   });
 };
 
-export const useIntegrationStatus = () => {
+export const useIntegrationStatus = (userId: string) => {
   return useQuery({
-    queryKey: ['integration-status'],
-    queryFn: () => api.getIntegrationStatus(),
+    queryKey: ['integration-status', userId],
+    queryFn: () => api.getIntegrationStatus(userId),
     refetchInterval: 30000, // Poll every 30 seconds
   });
 };
@@ -133,28 +153,22 @@ export const useAgentMutation = () => {
   });
 };
 
-export const useSyncMutation = () => {
+export const useSyncMutation = (userId: string = 'user_nexus_1') => {
   return useMutation({
-    mutationFn: () => api.triggerSync(),
+    mutationFn: () => api.triggerSync(userId),
   });
 };
 
 export const useNotionConnect = () => {
   return useMutation({
-    mutationFn: () => api.connectNotion(),
+    mutationFn: () => api.connectNotion('user_nexus_1'),
   });
 };
 
 export const useNotionPages = () => {
   return useQuery({
     queryKey: ['notion-pages'],
-    queryFn: () => api.getNotionPages(),
-    enabled: false, // Trigger manually or only if connected
-  });
-};
-
-export const useNotionImport = () => {
-  return useMutation({
-    mutationFn: (pageId: string) => api.importNotionPage(pageId),
+    queryFn: () => api.getNotionPages('user_nexus_1'),
+    enabled: false,
   });
 };

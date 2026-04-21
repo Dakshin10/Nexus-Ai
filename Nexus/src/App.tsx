@@ -29,8 +29,8 @@ function Dashboard() {
 }
 
 function AppContent() {
-  const { data: status } = useIntegrationStatus();
-  const { setGmailConnected, setNotionConnected } = useNexusStore();
+  const { currentUser, setGmailConnected, setNotionConnected } = useNexusStore();
+  const { data: status } = useIntegrationStatus(currentUser.id);
 
   React.useEffect(() => {
     if (status) {
