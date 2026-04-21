@@ -9,6 +9,7 @@ import { DecisionPage } from './components/DecisionPage';
 import { ExternalHub } from './pages/ExternalHub';
 import { useIntegrationStatus } from './services/api';
 import { useNexusStore } from './store/nexusStore';
+import { GraphView } from './components/GraphView';
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,7 @@ function AppContent() {
           <Route path="/decision" element={<DecisionPage />} />
         </Routes>
       </DashboardLayout>
+      <GraphView />
     </BrowserRouter>
   );
 }

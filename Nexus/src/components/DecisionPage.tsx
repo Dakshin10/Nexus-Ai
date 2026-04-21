@@ -7,11 +7,11 @@ import {
   Zap, 
   Clock, 
   Terminal, 
-  Cpu,
   Inbox,
   TrendingUp,
   Brain,
-  RotateCw
+  RotateCw,
+  Share2
 } from 'lucide-react';
 import { useNexusStore } from '../store/nexusStore';
 import { cn } from '../lib/utils';
@@ -117,20 +117,30 @@ export const DecisionPage: React.FC = () => {
           </p>
         </div>
 
-        <button 
-          onClick={() => runAgent()}
-          disabled={agent.status === 'running'}
-          className="group relative px-10 py-4 rounded-full bg-white text-black hover:bg-slate-200 transition-all active:scale-95 disabled:opacity-50 overflow-hidden shadow-[0_0_30px_rgba(255,255,255,0.1)]"
-        >
-          <div className="relative flex items-center gap-3">
-            {agent.status === 'running' ? (
-              <RotateCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <Zap className="w-4 h-4 fill-black" />
-            )}
-            <span className="text-xs font-black uppercase tracking-[0.2em]">Run Agent</span>
-          </div>
-        </button>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => useNexusStore.getState().toggleGraph()}
+            className="flex items-center gap-3 px-6 py-4 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white transition-all active:scale-95 text-xs font-black uppercase tracking-widest"
+          >
+            <Share2 className="w-4 h-4" />
+            View Map
+          </button>
+
+          <button 
+            onClick={() => runAgent()}
+            disabled={agent.status === 'running'}
+            className="group relative px-10 py-4 rounded-full bg-indigo-600 text-white hover:bg-indigo-500 transition-all active:scale-95 disabled:opacity-50 overflow-hidden shadow-[0_0_30px_rgba(79,70,229,0.2)]"
+          >
+            <div className="relative flex items-center gap-3">
+              {agent.status === 'running' ? (
+                <RotateCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Zap className="w-4 h-4 fill-white" />
+              )}
+              <span className="text-xs font-black uppercase tracking-[0.2em]">Run Agent</span>
+            </div>
+          </button>
+        </div>
       </header>
 
       {/* 🧩 Agent Execution View */}

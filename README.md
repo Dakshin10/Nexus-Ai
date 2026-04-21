@@ -1,53 +1,40 @@
-<<<<<<< HEAD
-# NEXUS ◈ Agentic AI Platform
+# NEXUS ◈ Cognitive Decision Engine
 
-> **Transforming Raw Thought into Structured Intelligence.**
+> **Transforming Workspace Chaos into Structured Intelligence.**
 
-NEXUS is a production-grade, multi-agent AI system designed to operate as a proactive cognitive assistant. By integrating long-term memory, predictive modeling, and autonomous task execution, NEXUS bridges the gap between chaotic human input and strategic action.
-
----
-
-## 🧠 Project Overview
-
-NEXUS isn't just an interface; it's a thinking system. It captures raw text, emails, and documents, decomposes them into atomic cognitive units, and executes strategic plans with minimal user effort.
-
-### Core Philosophy
-- **Show Less, Mean More**: A minimalist UI that highlights only critical insights.
-- **Proactive Intelligence**: Anticipates needs before you realize them.
-- **Goal-Driven Autonomy**: Set a goal, and NEXUS handles the journey.
+NEXUS is a high-performance, cognitive decision-making pipeline that integrates Gmail and Notion data into a unified, AI-prioritized action grid. It moves beyond static dashboards into a proactive "Personal OS" that filters noise, extracts intent, and maps cognitive dependencies.
 
 ---
 
-## 🧱 Architecture
+## 🧠 Core Intelligence Pipeline
 
-The system is built on a modular "Engine" architecture, where specialized agents communicate via a centralized cognitive stream:
+NEXUS operates as a multi-layered synthesis engine:
 
-- **Stream Engine**: Ingests and decomposes raw input into logical segments.
-- **Graph Engine**: Visualizes the relationship between thoughts and concepts.
-- **Decision Engine**: Guides users through complex choices with strategic follow-up.
-- **Memory Engine**: Detects behavioral patterns and manages long-term intelligence.
-- **Prediction Engine**: Forecasts completion probabilities and highlights risks.
-- **Agent System**: A goal-driven loop that plans and executes multi-step actions.
+1.  **Harvest Layer**: Concurrently ingests real-time streams from Gmail (filtering junk/promotions) and Notion Hubs.
+2.  **Cognitive Synthesis**: Utilizes GPT-4o-mini to decompose raw data into actionable tasks, infer urgency, and establish reasoning.
+3.  **Deduplication & Scoring**: Merges cross-platform duplicates and applies a priority scoring engine (+20 for multi-source items).
+4.  **Decision Grid**: Categorizes intelligence into a 3-tier action system: **DO NOW**, **DO NEXT**, and **LATER**.
+5.  **Interactive Mapping**: Visualizes the workspace as a dynamic cognitive graph with zoom-detail capabilities.
 
 ---
 
 ## ✨ Features
 
-- ✉️ **Gmail Smart-Filter**: Intelligent ingestion of primary emails, filtering out junk.
-- 📝 **Notes Integration**: Support for **Notion** and **Obsidian** (Markdown) synchronization.
-- 📄 **Document Ingestion**: Parsing for **PDF, DOCX, and PPTX** into actionable tasks.
-- 🚨 **Proactive Alerts**: Autonomous interventions for cognitive overload or delayed tasks.
-- 📊 **Weekly Intelligence**: Automated Sunday-evening briefings on behavioral performance.
-- 🎨 **Glassmorphism UI**: A premium, dark-themed experience with smooth transitions.
+- ⚛️ **Unified Action Dashboard**: Minimalist 3-column UI designed for clarity over cognitive load.
+- ✉️ **Gmail Smart-Harvester**: Intelligent extraction of primary communication with built-in noise filtering.
+- 📝 **Notion Workspace Sink**: Seamless integration with Notion pages for deep-context task extraction.
+- 🎨 **Force-Directed Cognitive Map**: Interactive dependency graph with node selection, detail side-panels, and zoom-to-focus.
+- 🤖 **State-Driven Orchestration**: Real-time agent status tracking (Fetching → Processing → Deciding → Done).
+- 🔐 **Per-User OAuth**: Secure, scalable authentication flow for Gmail and Notion integrations.
 
 ---
 
 ## 🛠 Tech Stack
 
-- **Frontend**: Vanilla JS, D3.js (Graphing), CSS3 (Glassmorphism)
-- **Backend**: Node.js, Express
-- **AI Integration**: OpenAI / Google Gemini (via Orchestrator)
-- **Integrations**: Google Gmail API, Notion API, Mammoth.js, PDF-parse
+- **Frontend**: React (Vite), TypeScript, Tailwind CSS, Framer Motion, Zustand (State Management).
+- **Visualization**: React-Force-Graph-2D (Interactive Map).
+- **Backend**: Node.js, Express, OpenAI (GPT-4o-mini).
+- **Integrations**: Google Cloud (Gmail API), Notion SDK.
 
 ---
 
@@ -55,25 +42,23 @@ The system is built on a modular "Engine" architecture, where specialized agents
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/nexus.git
-cd nexus
+git clone https://github.com/Dakshin10/Nexus.git
+cd Nexus
 ```
 
 ### 2. Backend Configuration
 ```bash
 cd backend
 npm install
-cp .env.example .env
-# Edit .env with your API keys
+# Configure .env with your API credentials
 npm run dev
 ```
 
 ### 3. Frontend Setup
 ```bash
-# Serve the Nexus directory using a local server (e.g., Live Server)
-# Or if using a build tool:
 cd Nexus
-# (Optional) npm install && npm start
+npm install
+npm run dev
 ```
 
 ---
@@ -83,32 +68,29 @@ cd Nexus
 Create a `backend/.env` file with the following:
 
 ```env
+# ===== NOTION OAUTH =====
+NOTION_CLIENT_ID=your_notion_client_id
+NOTION_CLIENT_SECRET=your_notion_client_secret
+NOTION_REDIRECT_URI=http://localhost:3001/auth/notion/callback
+
+# ===== GOOGLE OAUTH =====
+GOOGLE_CLIENT_ID=your_google_id
+GOOGLE_CLIENT_SECRET=your_google_secret
+GOOGLE_REDIRECT_URI=http://localhost:3001/auth/gmail/callback
+
+# ===== CORE =====
+OPENAI_API_KEY=your_openai_key
 PORT=3001
-OPENAI_API_KEY=your_key
-GOOGLE_CLIENT_ID=your_id
-GOOGLE_CLIENT_SECRET=your_secret
-GOOGLE_REDIRECT_URI=http://localhost:3001/api/external/oauth2callback
-GOOGLE_REFRESH_TOKEN=your_token
-NOTION_API_KEY=your_key
+FRONTEND_URL=http://localhost:5173
 ```
 
 ---
 
-## 🌐 API Endpoints
+## 🌐 Key API Endpoints
 
-- `POST /api/process`: Primary ingestion point for raw thoughts.
-- `GET /api/external/emails`: Fetch smart-filtered Gmail messages.
-- `POST /api/agent/start`: Initialize a goal-driven agent loop.
-- `GET /api/proactive/latest`: Poll for autonomous intelligence alerts.
-- `GET /api/weekly/brief`: Retrieve the latest behavioral intelligence report.
-
----
-
-## 🔮 Future Improvements
-
-- [ ] **Vector Database Integration**: Moving from local memory to persistent vector storage (Pinecone/Milvus).
-- [ ] **Multi-User Auth**: Implementing full JWT-based authentication.
-- [ ] **Advanced Graphing**: Transitioning D3.js to a WebGL-based visualization for larger datasets.
+- `POST /api/agent/run-intelligence`: Triggers the global workspace synthesis cycle.
+- `GET /api/gmail/emails`: Fetch smart-filtered communication.
+- `GET /api/agent/status`: Poll for real-time agent orchestration progress.
 
 ---
 
@@ -118,7 +100,4 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
-**Built with ❤️ by the NEXUS Engineering Team.**
-=======
-# Nexus
->>>>>>> 2d2e5576262962bc84b16ced03b4fe55d1d08f34
+**Built with ❤️ for High-Performance Operators.**
