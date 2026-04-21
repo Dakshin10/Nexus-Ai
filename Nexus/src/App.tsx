@@ -21,9 +21,6 @@ function Dashboard() {
       <section>
         <AgentPanel />
       </section>
-      <section>
-        <ActionPanel />
-      </section>
     </div>
   );
 }
@@ -36,6 +33,12 @@ function AppContent() {
     if (status) {
       setGmailConnected(status.gmail);
       setNotionConnected(status.notion);
+      
+      // Phase 8: Auto-run on startup
+      const { agent, runAgent } = useNexusStore.getState();
+      if (agent.status === 'idle' && (status.gmail || status.notion)) {
+        runAgent();
+      }
     }
   }, [status, setGmailConnected, setNotionConnected]);
 

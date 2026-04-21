@@ -1,55 +1,61 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import { useNexusStore } from '../store/nexusStore';
 
 interface CognitiveGraphProps {
-  onNodeClick: (node: any) => void;
+  onNodeClick?: (node: any) => void;
   isSyncing: boolean;
 }
 
-export const CognitiveGraph: React.FC<CognitiveGraphProps> = ({ onNodeClick, isSyncing }) => {
-  const { bucketedTasks, autoMode } = useNexusStore();
+export interface CognitiveGraphRef {
+  resetView: () => void;
+}
+
+export const CognitiveGraph = forwardRef<CognitiveGraphRef, CognitiveGraphProps>(({ onNodeClick: parentOnNodeClick, isSyncing }, ref) => {
+  const { bucketedTasks } = useNexusStore();
+  const fgRef = useRef<any>();
+  const [hoverNode, setHoverNode] = useState<any>(null);
+
+  useImperativeHandle(ref, () => ({
+    resetView: () => {
+      if (fgRef.current) {
+        fgRef.current.zoomToFit(1000);
+      }
+    }
+  }));
 
   const graphData = useMemo(() => {
+    // Standard Nodes as requested in Step 3
     const nodes: any[] = [
-      // Input Layer
-      { id: 'gmail', label: 'Gmail Stream', type: 'input', color: '#fb7185', val: 15 },
-      { id: 'notion', label: 'Notion Hub', type: 'input', color: '#34d399', val: 15 },
-      { id: 'user', label: 'User Context', type: 'input', color: '#818cf8', val: 15 },
-
-      // Core Layer
-      { id: 'ai-core', label: 'AI Synthesis', type: 'core', color: '#6366f1', val: 25 },
-      { id: 'decision', label: 'Decision Engine', type: 'core', color: '#4f46e5', val: 20 },
-
-      // Output Layer
-      { id: 'doNow', label: 'DO NOW', type: 'output', color: '#f43f5e', val: 18 },
-      { id: 'doNext', label: 'DO NEXT', type: 'output', color: '#f59e0b', val: 18 },
-      { id: 'later', label: 'LATER', type: 'output', color: '#64748b', val: 18 },
+      { id: 'gmail', name: 'Gmail Stream', type: 'source', priority: 'high', color: '#a855f7', val: 20, description: 'Real-time email data stream' },
+      { id: 'notion', name: 'Notion Hub', type: 'source', priority: 'high', color: '#a855f7', val: 20, description: 'Workspace documentation sink' },
+      { id: 'ai-core', name: 'AI Synthesis', type: 'core', priority: 'high', color: '#6366f1', val: 28, description: 'GPT-4o-mini processing layer' },
+      { id: 'doNow', name: 'DO NOW', type: 'agent', priority: 'high', color: '#3b82f6', val: 24, description: 'Immediate priority bucket' },
+      { id: 'doNext', name: 'DO NEXT', type: 'agent', priority: 'medium', color: '#3b82f6', val: 24, description: 'Scheduled priority bucket' },
+      { id: 'later', name: 'LATER', type: 'agent', priority: 'low', color: '#3b82f6', val: 24, description: 'Backlog bucket' },
     ];
 
     const links: any[] = [
       { source: 'gmail', target: 'ai-core' },
       { source: 'notion', target: 'ai-core' },
-      { source: 'user', target: 'ai-core' },
-      { source: 'ai-core', target: 'decision' },
-      { source: 'decision', target: 'doNow' },
-      { source: 'decision', target: 'doNext' },
-      { source: 'decision', target: 'later' },
+      { source: 'ai-core', target: 'doNow' },
+      { source: 'ai-core', target: 'doNext' },
+      { source: 'ai-core', target: 'later' },
     ];
 
-    // Dynamic Task Nodes
+    // Map Tasks to the graph
     const addTaskNodes = (tasks: any[], parentId: string) => {
       tasks.forEach((task, i) => {
         const taskId = `task-${parentId}-${i}`;
         nodes.push({
           id: taskId,
-          label: task.task,
+          name: task.task,
           type: 'task',
-          priority: parentId,
+          priority: task.priority || 'medium',
           source: task.source,
-          reasoning: task.reasoning,
-          color: nodes.find(n => n.id === parentId)?.color + '99',
-          val: 8
+          description: task.reasoning || 'AI-extracted task from workspace',
+          color: '#22c55e', 
+          val: 10 // Task nodes are smaller for hierarchy
         });
         links.push({ source: parentId, target: taskId });
       });
@@ -62,53 +68,68 @@ export const CognitiveGraph: React.FC<CognitiveGraphProps> = ({ onNodeClick, isS
     return { nodes, links };
   }, [bucketedTasks]);
 
-  const drawNode = useCallback((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
-    const label = node.label;
-    const fontSize = 12 / globalScale;
-    ctx.font = `${fontSize}px Inter, sans-serif`;
-    const textWidth = ctx.measureText(label).width;
-    const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2);
-
-    // Glow Effect
-    ctx.shadowColor = node.color;
-    ctx.shadowBlur = 10 / globalScale;
-
-    // Node Circle
-    ctx.beginPath();
-    ctx.arc(node.x, node.y, node.val / 2, 0, 2 * Math.PI, false);
-    ctx.fillStyle = node.color;
-    ctx.fill();
-
-    // Node Label (if zoomed in enough)
-    if (globalScale > 1.5 || node.type !== 'task') {
-      ctx.fillStyle = 'white';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(label, node.x, node.y + (node.val / 2) + fontSize);
+  const handleNodeClick = useCallback((node: any) => {
+    if (fgRef.current) {
+      fgRef.current.centerAt(node.x, node.y, 1000);
+      fgRef.current.zoom(4, 1000);
     }
     
-    ctx.shadowBlur = 0; // Reset for performance
-  }, []);
+    if (parentOnNodeClick) {
+      parentOnNodeClick(node);
+    }
+  }, [parentOnNodeClick]);
+
+  const drawNode = useCallback((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+    const isHovered = hoverNode === node;
+    const label = node.name || node.id;
+    const fontSize = 12 / globalScale;
+    
+    ctx.fillStyle = node.color || "#6366f1";
+
+    if (isHovered) {
+      ctx.shadowColor = node.color;
+      ctx.shadowBlur = 15 / globalScale;
+    }
+
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, node.val / 2, 0, 2 * Math.PI, false);
+    ctx.fill();
+    
+    ctx.shadowBlur = 0;
+
+    if (globalScale > 1.5 || node.type !== 'task') {
+      ctx.font = `${fontSize}px Inter, sans-serif`;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, node.x, node.y + (node.val / 2) + fontSize + 2);
+    }
+  }, [hoverNode]);
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full relative">
       <ForceGraph2D
+        ref={fgRef}
         graphData={graphData}
-        nodeLabel="label"
-        nodeColor={n => n.color as string}
         nodeCanvasObject={drawNode}
-        onNodeClick={onNodeClick}
-        linkLabel={''}
+        onNodeClick={handleNodeClick}
+        onNodeHover={(node) => setHoverNode(node)}
+        linkWidth={(link: any) =>
+          link.source === hoverNode || link.target === hoverNode ? 3 : 1
+        }
+        linkColor={(link: any) => 
+          link.source === hoverNode || link.target === hoverNode ? 'rgba(99, 102, 241, 0.5)' : 'rgba(255, 255, 255, 0.05)'
+        }
+        enableZoomInteraction
+        enablePanInteraction
         linkDirectionalParticles={isSyncing ? 4 : 0}
         linkDirectionalParticleSpeed={0.01}
         linkDirectionalParticleWidth={2}
         linkDirectionalParticleColor={() => '#818cf8'}
-        linkWidth={1}
-        linkColor={() => 'rgba(255, 255, 255, 0.05)'}
         backgroundColor="rgba(0,0,0,0)"
         cooldownTicks={100}
         d3VelocityDecay={0.3}
       />
     </div>
   );
-};
+});

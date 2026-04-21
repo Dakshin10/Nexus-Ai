@@ -52,11 +52,13 @@ async function extractTasksFromEmails(emails) {
     - Infer urgency (DO_NOW, DO_NEXT, LATER)
     - Max 5 tasks total
     
-    Output format:
+    Output format (JSON ONLY):
     [
       {
         "task": "Title of the task",
         "priority": "DO_NOW | DO_NEXT | LATER",
+        "source": "gmail",
+        "confidence": 0.95,
         "reasoning": "Brief explanation of why"
       }
     ]

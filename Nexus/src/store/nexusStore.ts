@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 
 interface AgentState {
-  currentStep: string;
-  nextAction: string;
+  status: "idle" | "running" | "completed";
+  step: "idle" | "fetching" | "processing" | "deciding" | "done";
   progress: number;
-  status: 'idle' | 'running' | 'paused' | 'waiting';
+  result: any | null;
 }
 
 interface NexusState {
@@ -20,6 +20,7 @@ interface NexusState {
   agent: AgentState;
   setAgentStatus: (status: AgentState['status']) => void;
   updateAgent: (update: Partial<AgentState>) => void;
+  runAgent: () => Promise<void>;
 
   // Stream / Insights
   streamOutput: any[];
@@ -72,7 +73,7 @@ interface NexusState {
   clearLogs: () => void;
 }
 
-export const useNexusStore = create<NexusState>((set) => ({
+export const useNexusStore = create<NexusState>((set, get) => ({
   userInput: '',
   setUserInput: (userInput) => set({ userInput }),
 
@@ -80,13 +81,56 @@ export const useNexusStore = create<NexusState>((set) => ({
   setCurrentUser: (currentUser) => set({ currentUser }),
 
   agent: {
-    currentStep: 'Waiting for input...',
-    nextAction: 'Analyze objective',
-    progress: 0,
     status: 'idle',
+    step: 'idle',
+    progress: 0,
+    result: null,
   },
   setAgentStatus: (status) => set((state) => ({ agent: { ...state.agent, status } })),
   updateAgent: (update) => set((state) => ({ agent: { ...state.agent, ...update } })),
+
+  runAgent: async () => {
+    const { currentUser, setBucketedTasks, addLog } = get();
+    
+    set({ agent: { status: "running", step: "fetching", progress: 10, result: null } });
+    addLog('Initiating data harvest from Gmail & Notion...', 'agent');
+
+    try {
+      const response = await fetch('http://localhost:3001/api/system/run-intelligence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id })
+      });
+
+      set({ agent: { ...get().agent, step: "processing", progress: 50 } });
+      addLog('Synthesizing task context via GPT-4o-mini...', 'agent');
+
+      const result = await response.json();
+      
+      set({ agent: { ...get().agent, step: "deciding", progress: 85 } });
+      addLog('Prioritizing actions into Nexus Decision Grid...', 'agent');
+
+      if (result.success && result.data) {
+        setBucketedTasks(result.data);
+        set({ 
+          agent: { 
+            status: "completed", 
+            step: "done", 
+            progress: 100, 
+            result: result.data 
+          },
+          systemHealth: 'active'
+        });
+        addLog('Global Intelligence Sync Complete.', 'success');
+      } else {
+        throw new Error(result.error || 'Failed to extract tasks');
+      }
+    } catch (error: any) {
+      console.error('Agent run failed:', error);
+      set({ agent: { status: "idle", step: "idle", progress: 0, result: null } });
+      addLog(`Orchestration failed: ${error.message}`, 'info');
+    }
+  },
 
   streamOutput: [],
   cognitiveLoad: 0,

@@ -1,59 +1,46 @@
 import React from 'react';
-import { Send, Bot, Loader2 } from 'lucide-react';
+import { Send, Bot, Loader2, Zap } from 'lucide-react';
 import { useNexusStore } from '../store/nexusStore';
-import { useStreamMutation, useAgentMutation } from '../services/api';
 
 export const InputBox: React.FC = () => {
-  const { userInput, setUserInput, updateAgent } = useNexusStore();
-  const stream = useStreamMutation();
-  const agent = useAgentMutation();
-
-  const handleProcess = async () => {
-    if (!userInput) return;
-    stream.mutate(userInput);
-  };
+  const { userInput, setUserInput, runAgent, agent } = useNexusStore();
 
   const handleRunAgent = async () => {
     if (!userInput) return;
-    updateAgent({ status: 'running', currentStep: 'Initializing Agent...', progress: 5 });
-    agent.mutate(userInput);
+    await runAgent();
   };
 
   return (
-    <div className="relative group">
-      <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-2xl blur opacity-25 group-focus-within:opacity-100 transition duration-500" />
+    <div className="relative group max-w-4xl mx-auto w-full">
+      <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-[2rem] blur opacity-25 group-focus-within:opacity-100 transition duration-500" />
       
-      <div className="relative bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-xl">
+      <div className="relative bg-[#0a0a0a]/60 border border-white/5 rounded-[1.9rem] p-6 backdrop-blur-3xl shadow-2xl">
         <textarea
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
-          placeholder="What do you want to achieve?"
-          className="w-full bg-transparent border-none focus:ring-0 text-xl font-light placeholder:text-slate-600 resize-none h-32"
+          placeholder="State your objective... (e.g. 'Optimize my morning pipeline')"
+          className="w-full bg-transparent border-none focus:ring-0 text-2xl font-black placeholder:text-slate-800 text-white resize-none h-40 custom-scrollbar"
         />
         
-        <div className="flex items-center justify-between mt-4">
-          <div className="flex gap-2">
-            <button
-              onClick={handleProcess}
-              disabled={stream.isPending}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 transition-all border border-white/5 active:scale-95 disabled:opacity-50"
-            >
-              {stream.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              <span className="text-sm font-medium">Process</span>
-            </button>
+        <div className="flex items-center justify-between mt-6">
+          <div className="flex items-center gap-4">
+             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Cognitive Core Active</span>
+             </div>
+          </div>
 
+          <div className="flex gap-4">
             <button
               onClick={handleRunAgent}
-              disabled={agent.isPending}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white transition-all shadow-lg shadow-indigo-500/20 active:scale-95 disabled:opacity-50"
+              disabled={agent.status === 'running' || !userInput}
+              className="group relative flex items-center gap-3 px-10 py-4 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-[0_0_40px_rgba(79,70,229,0.2)] active:scale-95 disabled:opacity-30 disabled:grayscale overflow-hidden"
             >
-              {agent.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bot className="w-4 h-4" />}
-              <span className="text-sm font-medium">Run Agent</span>
+              <div className="relative flex items-center gap-3 z-10">
+                {agent.status === 'running' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4 fill-white" />}
+                <span className="text-xs font-black uppercase tracking-[0.3em]">Run Agent</span>
+              </div>
             </button>
-          </div>
-          
-          <div className="text-[10px] text-slate-500 font-mono uppercase tracking-widest hidden sm:block">
-            Press CMD+Enter to quick process
           </div>
         </div>
       </div>

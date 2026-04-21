@@ -1,143 +1,113 @@
 /**
  * Task Decision Engine
- * Centralized logic for merging, deduplicating, and prioritizing heterogeneous task data.
+ * Integrated logic for merging, deduplicating, and prioritizing tasks from Notion & Gmail.
  */
 const logger = require('../../utils/logger');
 
 class TaskDecisionEngine {
-  constructor() {
-    this.URGENCY_KEYWORDS = ['asap', 'urgent', 'immediately', 'critical', 'deadline', 'blocking'];
-    this.PRIORITY_MAP = {
-      'DO_NOW': 10,
-      'high': 10,
-      'DO_NEXT': 5,
-      'medium': 5,
-      'LATER': 1,
-      'low': 1
-    };
+  /**
+   * Main entry point for the decision engine (Phase 5)
+   */
+  optimize(gmailTasks, notionTasks) {
+    // Phase 2: Merge
+    let tasks = [...gmailTasks, ...notionTasks];
+
+    // Phase 3: Deduplicate
+    tasks = this.deduplicate(tasks);
+
+    // Phase 4 & 5: Score and Bucket
+    return this.decisionEngine(tasks);
   }
 
   /**
-   * Optimize a list of raw tasks into a prioritized pipeline
-   * @param {Array} tasks 
+   * Phase 3: Deduplication
+   * Removes duplicate tasks based on lowercase task text.
    */
-  optimize(tasks) {
-    if (!tasks || !Array.isArray(tasks)) return { doNow: [], doNext: [], later: [] };
+  deduplicate(tasks) {
+    const seen = new Map();
 
-    // 1. Deduplicate & Merge
-    const uniqueTasks = this.mergeSimilarTasks(tasks);
+    tasks.forEach(task => {
+      const key = task.task.toLowerCase().trim();
 
-    // 2. Score
-    const scoredTasks = uniqueTasks.map(task => ({
-      ...task,
-      score: this.calculateScore(task)
-    }));
-
-    // 3. Bucket
-    const bucketed = this.bucket(scoredTasks);
-
-    // 4. Identify Next Absolute Action
-    const nextAction = this.pickNextAction(bucketed.doNow);
-
-    return {
-      ...bucketed,
-      nextAction
-    };
-  }
-
-  /**
-   * Basic semantic merging using token overlap
-   */
-  mergeSimilarTasks(tasks) {
-    const merged = [];
-    const usedIndices = new Set();
-
-    for (let i = 0; i < tasks.length; i++) {
-      if (usedIndices.has(i)) continue;
-
-      let currentTask = { ...tasks[i] };
-      const tokens1 = new Set(currentTask.task.toLowerCase().split(/\s+/));
-
-      for (let j = i + 1; j < tasks.length; j++) {
-        if (usedIndices.has(j)) continue;
-
-        const tokens2 = tasks[j].task.toLowerCase().split(/\s+/);
-        const intersection = tokens2.filter(t => tokens1.has(t));
-        const similarity = intersection.length / Math.max(tokens1.size, tokens2.length);
-
-        if (similarity > 0.6) { // 60% overlap threshold
-          usedIndices.add(j);
-          currentTask.aggregated = true;
-          currentTask.mergedSources = [
-            ...(currentTask.mergedSources || [currentTask.source]),
-            tasks[j].source
-          ];
-          // Keep the longer reasoning if available
-          if ((tasks[j].reasoning?.length || 0) > (currentTask.reasoning?.length || 0)) {
-            currentTask.reasoning = tasks[j].reasoning;
-          }
-        }
+      if (!seen.has(key)) {
+        seen.set(key, task);
+      } else {
+        // If it exists in multiple sources, mark it for a score boost
+        const existing = seen.get(key);
+        existing.appearsInMultipleSources = true;
+        existing.source = existing.source.includes(task.source) 
+          ? existing.source 
+          : `${existing.source} + ${task.source}`;
       }
-      merged.push(currentTask);
-    }
-    return merged;
+    });
+
+    return Array.from(seen.values());
   }
 
   /**
-   * Heuristic scoring based on priority, keywords, and metadata
+   * Phase 4: Priority Scoring Engine
+   * Re-evaluates priorities using combined context.
    */
-  calculateScore(task) {
-    let score = this.PRIORITY_MAP[task.priority] || 5;
+  scoreTask(task) {
+    let score = 0;
 
-    // Keyword Boost
-    const content = `${task.task} ${task.reasoning || ''} ${task.context || ''}`.toLowerCase();
-    if (this.URGENCY_KEYWORDS.some(k => content.includes(k))) {
-      score += 5;
+    // Rule: Urgency Keywords (+25)
+    if (/urgent|asap|today|tomorrow|deadline|immediately/.test(task.task.toLowerCase())) {
+      score += 25;
     }
 
-    // Source Bias (User Input > Gmail > Notion for reliability)
-    if (task.source === 'manual') score += 2;
-    if (task.source === 'gmail') score += 0.5;
-    if (task.source === 'document') score += 1;
+    // Rule: Appears in multiple sources (+20)
+    if (task.appearsInMultipleSources) {
+      score += 20;
+    }
+
+    // Rule: Source specific bias (+10 for Gmail as requested)
+    if (task.source.includes("gmail")) {
+      score += 10;
+    }
+
+    // Rule: Original high priority bias
+    if (task.priority === "DO_NOW") score += 10;
 
     return score;
   }
 
   /**
-   * Select the single most important action for the OS to highlight
+   * Phase 5: Decision Engine
+   * Final priority assignment and categorization.
    */
-  pickNextAction(doNowTasks) {
-    if (!doNowTasks || doNowTasks.length === 0) return null;
-    // Highest score in DO_NOW bucket
-    return doNowTasks[0].task;
-  }
-
-  /**
-   * Partition tasks into the 3-tier pipeline
-   */
-  bucket(tasks) {
-    const doNow = [];
-    const doNext = [];
-    const later = [];
+  decisionEngine(tasks) {
+    const result = {
+      doNow: [],
+      doNext: [],
+      later: []
+    };
 
     tasks.forEach(task => {
-      if (task.score >= 12) {
-        doNow.push({ ...task, priority: 'DO_NOW' });
-      } else if (task.score >= 5) {
-        doNext.push({ ...task, priority: 'DO_NEXT' });
-      } else {
-        later.push({ ...task, priority: 'LATER' });
-      }
+      const score = this.scoreTask(task);
+      let finalPriority = "LATER";
+
+      if (score > 30) finalPriority = "DO_NOW";
+      else if (score > 15) finalPriority = "DO_NEXT";
+
+      const finalTask = {
+        ...task,
+        priority: finalPriority,
+        score
+      };
+
+      if (finalPriority === "DO_NOW") result.doNow.push(finalTask);
+      else if (finalPriority === "DO_NEXT") result.doNext.push(finalTask);
+      else result.later.push(finalTask);
     });
 
-    // Sort within buckets by score
+    // Sort by score within each bucket
     const sortByScore = (a, b) => b.score - a.score;
+    result.doNow.sort(sortByScore);
+    result.doNext.sort(sortByScore);
+    result.later.sort(sortByScore);
 
-    return {
-      doNow: doNow.sort(sortByScore),
-      doNext: doNext.sort(sortByScore),
-      later: later.sort(sortByScore)
-    };
+    return result;
   }
 }
 

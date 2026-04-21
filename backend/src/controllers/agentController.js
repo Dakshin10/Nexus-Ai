@@ -102,35 +102,47 @@ exports.handleApproveAction = async (req, res) => {
 /**
  * ⚡ PHASE 4 — UNIFIED API
  * Orchestrates Filtering, Understanding, and Decision layers.
+ * Merges Multi-Source (Gmail + Notion) into a single pipeline.
  */
 exports.handleRunIntelligence = async (req, res) => {
   const { userId = 'user_nexus_1' } = req.body;
 
   try {
-    logger.log('agent-controller', 'Running Phase 1: Filtering Engine...');
-    const emails = await gmailIngestionEngine.ingest({ count: 10, userId });
+    logger.log('agent-controller', '🚀 Initiating Unified Decision Cycle...');
 
-    if (emails.length === 0) {
-      return res.json({
-        success: true,
-        message: 'No actionable emails found after filtering.',
-        data: { doNow: [], doNext: [], later: [] }
+    // 1. HARVEST GMAIL
+    logger.log('agent-controller', 'Phase 1: Harvesting Gmail messages...');
+    const emails = await gmailIngestionEngine.ingest({ count: 10, userId });
+    const gmailTasks = await emailAIEngine.process(emails);
+    logger.log('agent-controller', `Gmail Harvest: Extracted ${gmailTasks.length} tasks.`);
+
+    // 2. HARVEST NOTION
+    let notionTasks = [];
+    try {
+      logger.log('agent-controller', 'Phase 1.5: Harvesting Notion pages...');
+      const pages = await notesService.listPages(userId);
+      const recentPages = pages.slice(0, 3); // Process top 3 most recent pages for performance
+
+      const notionTaskPromises = recentPages.map(async (p) => {
+        const fullPage = await notesService.fetchNotionPage(p.id, userId);
+        return notionAIEngine.process(fullPage);
       });
+
+      const notionResults = await Promise.all(notionTaskPromises);
+      notionTasks = notionResults.flat();
+      logger.log('agent-controller', `Notion Harvest: Extracted ${notionTasks.length} tasks.`);
+    } catch (notionError) {
+      logger.error('agent-controller', `Notion Harvest partially failed: ${notionError.message}`);
+      // Continue without Notion if it fails
     }
 
-    logger.log('agent-controller', 'Running Phase 2: AI Understanding Engine...');
-    const tasks = await emailAIEngine.process(emails);
-
-    logger.log('agent-controller', 'Running Phase 3: Decision Engine...');
-    const decisions = {
-      doNow: tasks.filter(t => t.priority === 'DO_NOW'),
-      doNext: tasks.filter(t => t.priority === 'DO_NEXT'),
-      later: tasks.filter(t => t.priority === 'LATER')
-    };
+    // 3. UNIFIED DECISION ENGINE (Merge, Deduplicate, Score)
+    logger.log('agent-controller', 'Phase 2: Running Unified Decision Engine...');
+    const result = taskDecisionEngine.optimize(gmailTasks, notionTasks);
 
     res.json({
       success: true,
-      data: decisions
+      data: result
     });
   } catch (error) {
     logger.error('agent-controller', `Intelligence Pipeline Failed: ${error.message}`);

@@ -31,9 +31,9 @@ class NotionAIEngine {
         {
           "task": "short descriptive task",
           "priority": "DO_NOW" | "DO_NEXT" | "LATER",
-          "reasoning": "brief explanation for this classification",
-          "deadline": "ISO date or null",
-          "source": "notion"
+          "source": "notion",
+          "confidence": 0.85,
+          "reasoning": "brief explanation"
         }
       ]
     `;
