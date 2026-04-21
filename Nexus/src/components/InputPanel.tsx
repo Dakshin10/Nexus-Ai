@@ -1,10 +1,13 @@
-import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, Command, ArrowRight, Bot, RotateCw } from 'lucide-react';
 import { useNexusStore } from '../store/nexusStore';
 import { useNotionSync } from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export const InputPanel: React.FC = () => {
+type InputPanelProps = {
+  onProcess?: (text: string) => Promise<void>;
+};
+
+export const InputPanel: React.FC<InputPanelProps> = ({ onProcess }) => {
   const { userInput, setUserInput, setBucketedTasks, updateAgent } = useNexusStore();
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);

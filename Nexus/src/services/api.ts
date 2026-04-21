@@ -172,3 +172,22 @@ export const useNotionPages = () => {
     enabled: false,
   });
 };
+
+// --- Mocks & Compatibility fixes as requested ---
+
+export const useNotionImport = () => {
+  return useMutation({
+    mutationFn: (data: { pageId: string, userId: string }) => api.importNotionPage(data.pageId, data.userId),
+  });
+};
+
+export const mockStreamResponse = async () => {
+  return "This is a stabilized cognitive stream response mock.";
+};
+
+export const mockAgentSteps = [
+  "Synchronizing Gmail Source",
+  "Analyzing Notion Knowledge Base",
+  "Prioritizing Adaptive Decisons",
+  "Optimizing Dashboard Grid"
+];

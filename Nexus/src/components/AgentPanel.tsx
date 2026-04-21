@@ -1,16 +1,11 @@
-import React from 'react';
 import { 
-  Bot,
-  RotateCw,
-  Clock,
   Brain,
   Database,
   Cpu,
   CheckCircle2
 } from 'lucide-react';
 import { useNexusStore } from '../store/nexusStore';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Progress } from './ui/progress';
+import { motion } from 'framer-motion';
 import { cn } from '../lib/utils';
 
 const stepLabels = {
