@@ -62,6 +62,35 @@ function generateMockResponse(stage, input) {
       return { summary: 'Mocked summary', urgent: [], top_priority: 'Mocked priority', recommended_action: 'Mocked action' };
     case 'load':
       return { cognitive_load: { score: 50, status: 'yellow' } };
+    case 'email-preprocessing':
+      // Intelligent mock based on input keywords
+      const text = `${input.subject} ${input.content}`.toLowerCase();
+      if (text.includes('meeting') || text.includes('call') || text.includes('schedule')) {
+        return { task: `Schedule meeting with ${input.sender}`, priority: 'high', intent: 'MEETING', deadline: 'Tomorrow', context: input.subject };
+      }
+      if (text.includes('review') || text.includes('feedback') || text.includes('check')) {
+        return { task: `Review document: ${input.subject}`, priority: 'medium', intent: 'REVIEW', deadline: null, context: 'Feedback requested' };
+      }
+      if (text.includes('urgent') || text.includes('immediately') || text.includes('asap')) {
+        return { task: `Action required: ${input.subject}`, priority: 'high', intent: 'ACTION', deadline: 'ASAP', context: input.content.slice(0, 50) };
+      }
+      // If none of the above, simulate an informational email (return empty for filter)
+      return {};
+    case 'cognitive-extraction':
+      return {
+        ideas: [
+          { text: "Decentralized data mesh architecture for Nexus", impact: "high" },
+          { text: "Framer Motion integration for fluid UI state", impact: "medium" }
+        ],
+        tasks: [
+          { task: "Update system documentation", priority: "low", deadline: "Friday" },
+          { task: "Optimize Redis connection pool", priority: "medium", deadline: "ASAP" }
+        ],
+        decisions: [
+          { decision: "Adopt shadcn/ui for component library", reason: "Productivity and accessibility" },
+          { decision: "Use Node.js for backend orchestration", reason: "Async performance" }
+        ]
+      };
     default:
       return {};
   }

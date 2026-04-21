@@ -19,6 +19,10 @@ const agentRoutes = require('./routes/agentRoutes');
 const evaluationRoutes = require('./routes/evaluationRoutes');
 
 const systemRoutes = require('./routes/systemRoutes');
+const gmailRoutes = require('./routes/gmailRoutes');
+const integrationsRoutes = require('./routes/integrationsRoutes');
+const syncRoutes = require('./routes/syncRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 const logger = require('./utils/logger');
 
 const app = express();
@@ -44,9 +48,17 @@ app.use('/api/evaluate', evaluationRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/proactive', proactiveRoutes);
 app.use('/api/onboarding', onboardingRoutes);
+app.use('/api/integrations/gmail', gmailRoutes);
+app.use('/api/integrations', integrationsRoutes);
+app.use('/api/integrations', syncRoutes);
+app.use('/api', uploadRoutes);
 
 // Start Proactive Intelligence Loop (Every 60s)
 proactiveService.start(60000);
+
+// Validate Integrations
+const notesService = require('./services/notesService');
+notesService.validateConnection();
 
 // Health Check
 app.get('/health', (req, res) => res.status(200).send('OK'));

@@ -2,20 +2,28 @@
  * External Controller
  * Handles real-world data ingestion (Gmail, text) and semantic processing.
  */
-const { processExternal } = require('../engines/external/externalPipeline');
+const emailAIEngine = require('../engines/external/emailAIEngine');
+const gmailIngestionEngine = require('../engines/external/gmailIngestionEngine');
 const gmailService = require('../services/gmailService');
 const logger = require('../utils/logger');
 
 async function handleGetEmails(req, res) {
+  const { analyze } = req.query;
   try {
-    const emails = await gmailService.fetchEmails(5);
+    const emails = await gmailIngestionEngine.ingest({ count: 10, userId: 'me' });
+    
+    if (analyze === 'true') {
+      const insights = await emailAIEngine.process(emails);
+      return res.status(200).json({ emails, insights });
+    }
+    
     return res.status(200).json(emails);
   } catch (error) {
-    logger.error('external-controller', `Gmail fetch failed: ${error.message}`);
-    return res.status(error.message.includes('Not authenticated') ? 401 : 500).json({
+    logger.error('external-controller', `Gmail ingestion failed: ${error.message}`);
+    return res.status(error.message.includes('No tokens') ? 401 : 500).json({
       error: 'Gmail integration error',
       message: error.message,
-      auth_url: error.message.includes('Not authenticated') ? gmailService.getAuthUrl() : null
+      auth_url: error.message.includes('No tokens') ? gmailService.getAuthUrl() : null
     });
   }
 }

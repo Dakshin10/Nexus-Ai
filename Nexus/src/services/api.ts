@@ -1,106 +1,90 @@
-import { StreamOutput, AgentStep, ExternalEmail } from "../store/nexusStore";
+import { useQuery, useMutation } from '@tanstack/react-query';
 
-const BASE_URL = "http://localhost:3001";
+const API_BASE = 'http://localhost:3001/api';
 
-const request = async <T>(path: string, options?: RequestInit): Promise<T> => {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
-  if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`);
-  return res.json() as Promise<T>;
+export const api = {
+  // Stream & Decision
+  processStream: async (input: string) => {
+    const res = await fetch(`${API_BASE}/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input }),
+    });
+    return res.json();
+  },
+
+  runAgent: async (goal: string) => {
+    const res = await fetch(`${API_BASE}/system/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ goal }),
+    });
+    return res.json();
+  },
+
+  // Predictions
+  getPredictions: async () => {
+    const res = await fetch(`${API_BASE}/predict`);
+    return res.json();
+  },
+
+  // External
+  getEmails: async (analyze: boolean = false) => {
+    const res = await fetch(`${API_BASE}/integrations/gmail?analyze=${analyze}`);
+    return res.json();
+  },
+
+  getIntegrationStatus: async () => {
+    const res = await fetch(`${API_BASE}/integrations/status`);
+    return res.json();
+  },
+
+  processExternal: async (data: any) => {
+    const res = await fetch(`${API_BASE}/external/process`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  triggerSync: async () => {
+    const res = await fetch(`${API_BASE}/integrations/sync`, { method: 'POST' });
+    return res.json();
+  },
 };
 
-// ─── Stream Engine ────────────────────────────────────────────────────────────
-
-export const streamProcess = (text: string): Promise<StreamOutput> =>
-  request<StreamOutput>("/stream", {
-    method: "POST",
-    body: JSON.stringify({ text }),
+// Hooks
+export const useEmails = (analyze = false) => {
+  return useQuery({
+    queryKey: ['emails', analyze],
+    queryFn: () => api.getEmails(analyze),
+    refetchInterval: 60000, // Refresh every minute
   });
+};
 
-// ─── Decision Engine ──────────────────────────────────────────────────────────
-
-export const processDecision = (context: string, answers: Record<string, string>) =>
-  request("/decision", {
-    method: "POST",
-    body: JSON.stringify({ context, answers }),
+export const useIntegrationStatus = () => {
+  return useQuery({
+    queryKey: ['integration-status'],
+    queryFn: () => api.getIntegrationStatus(),
+    refetchInterval: 30000, // Poll every 30 seconds
   });
+};
 
-// ─── Prediction Engine ────────────────────────────────────────────────────────
-
-export const runPrediction = (context: string) =>
-  request("/predict", {
-    method: "POST",
-    body: JSON.stringify({ context }),
+export const useStreamMutation = () => {
+  return useMutation({
+    mutationFn: (input: string) => api.processStream(input),
   });
+};
 
-// ─── Agent / Orchestrator ─────────────────────────────────────────────────────
-
-export const runAgent = (goal: string): Promise<{ steps: AgentStep[] }> =>
-  request<{ steps: AgentStep[] }>("/system/run", {
-    method: "POST",
-    body: JSON.stringify({ goal }),
+export const useAgentMutation = () => {
+  return useMutation({
+    mutationFn: (goal: string) => api.runAgent(goal),
   });
+};
 
-// ─── External Hub ─────────────────────────────────────────────────────────────
-
-export const fetchEmails = (): Promise<ExternalEmail[]> =>
-  request<ExternalEmail[]>("/external/emails");
-
-export const processExternal = (data: unknown) =>
-  request("/external/process", {
-    method: "POST",
-    body: JSON.stringify(data),
+export const useSyncMutation = () => {
+  return useMutation({
+    mutationFn: () => api.triggerSync(),
   });
-
-// ─── Mock helpers (dev-only) ──────────────────────────────────────────────────
-
-export const mockStreamResponse = (text: string): Promise<StreamOutput> =>
-  new Promise((resolve) =>
-    setTimeout(
-      () =>
-        resolve({
-          summary: `You want to: "${text.slice(0, 80)}...". Key themes: execution, clarity, momentum.`,
-          tasks: [
-            { id: "t1", title: "Break down the goal into atomic steps", source: "Stream", priority: "now", isTopPriority: true },
-            { id: "t2", title: "Identify blockers and dependencies", source: "Stream", priority: "next" },
-            { id: "t3", title: "Schedule a review checkpoint", source: "Stream", priority: "later" },
-          ],
-          ideas: ["Use NEXUS agent to auto-schedule the tasks", "Link relevant documents from External Hub"],
-          questions: ["What is the minimum viable outcome?", "Who else is involved in this goal?"],
-          emotions: ["Focused", "Motivated", "Slightly overwhelmed"],
-          cognitiveLoad: Math.min(30 + text.length / 3, 95),
-        }),
-      1800
-    )
-  );
-
-export const mockAgentSteps = (goal: string): Promise<{ steps: AgentStep[] }> =>
-  new Promise((resolve) =>
-    setTimeout(
-      () =>
-        resolve({
-          steps: [
-            { id: "s1", title: "Initialize Environment", action: `Setting up a secure execution context for: "${goal.slice(0, 40)}..."` },
-            { id: "s2", title: "Research & Gather Context", action: "Scanning memory store and external sources for relevant prior knowledge." },
-            { id: "s3", title: "Draft Execution Plan", action: "Synthesizing a multi-step plan aligned with your goal and constraints." },
-            { id: "s4", title: "Validate & Confirm", action: "Cross-referencing the plan against known risks and compliance rules." },
-          ],
-        }),
-      1200
-    )
-  );
-
-export const mockEmails = (): Promise<ExternalEmail[]> =>
-  new Promise((resolve) =>
-    setTimeout(
-      () =>
-        resolve([
-          { id: "e1", subject: "Critical: Production deployment issue", sender: "devops@nexus.ai", priority: "high", timestamp: "2m ago" },
-          { id: "e2", subject: "Weekly cognitive performance report", sender: "system@nexus.ai", priority: "medium", timestamp: "1h ago" },
-          { id: "e3", subject: "New collaboration request from ALEX", sender: "alex@partner.io", priority: "low", timestamp: "3h ago" },
-        ]),
-      800
-    )
-  );
+};
