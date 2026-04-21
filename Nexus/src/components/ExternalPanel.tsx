@@ -31,7 +31,7 @@ const EmailCard = ({ email }: any) => (
 );
 
 export const ExternalPanel: React.FC = () => {
-  const { isExternalPanelOpen, toggleExternalPanel, isGmailConnected } = useNexusStore();
+  const { isExternalPanelOpen, toggleExternalPanel, isGmailConnected, isNotionConnected } = useNexusStore();
   const { data: emailData, isLoading } = useEmails(true);
 
   return (
@@ -74,28 +74,30 @@ export const ExternalPanel: React.FC = () => {
 
             {/* Gmail Section */}
             {isGmailConnected && (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-indigo-400">
-                  <Mail className="w-4 h-4" />
-                  <h4 className="text-xs font-bold uppercase tracking-wider">Gmail</h4>
+              <section className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-indigo-400">
+                    <Mail className="w-4 h-4" />
+                    <h4 className="text-xs font-bold uppercase tracking-wider">Gmail</h4>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 text-[10px] font-bold text-indigo-400 border border-indigo-500/20">
+                    {isLoading ? '...' : emailData?.emails?.length || 0}
+                  </span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 text-[10px] font-bold text-indigo-400 border border-indigo-500/20">
-                  {isLoading ? '...' : emailData?.emails?.length || 0}
-                </span>
-              </div>
-              
-              <div className="space-y-3">
-                {isLoading ? (
-                  Array(3).fill(0).map((_, i) => (
-                    <div key={i} className="h-24 rounded-2xl bg-white/[0.02] animate-pulse" />
-                  ))
-                ) : (
-                  emailData?.emails?.map((email: any) => (
-                    <EmailCard key={email.nexus_id} email={email} />
-                  ))
-                )}
-              </div>
-            </section>
+                
+                <div className="space-y-3">
+                  {isLoading ? (
+                    Array(3).fill(0).map((_, i) => (
+                      <div key={i} className="h-24 rounded-2xl bg-white/[0.02] animate-pulse" />
+                    ))
+                  ) : (
+                    emailData?.emails?.map((email: any) => (
+                      <EmailCard key={email.nexus_id} email={email} />
+                    ))
+                  )}
+                </div>
+              </section>
+            )}
 
             {/* Documents Section */}
             <section className="space-y-4">
