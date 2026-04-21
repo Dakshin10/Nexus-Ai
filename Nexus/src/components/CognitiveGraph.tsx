@@ -7,11 +7,11 @@ interface CognitiveGraphProps {
   isSyncing: boolean;
 }
 
-export interface CognitiveGraphRef {
+export type CognitiveGraphRef = {
   resetView: () => void;
-}
+};
 
-export const CognitiveGraph = forwardRef<CognitiveGraphRef, CognitiveGraphProps>(({ onNodeClick: parentOnNodeClick, isSyncing }, ref) => {
+const CognitiveGraph = forwardRef<CognitiveGraphRef, CognitiveGraphProps>(({ onNodeClick: parentOnNodeClick, isSyncing }, ref) => {
   const { bucketedTasks } = useNexusStore();
   const fgRef = useRef<any>();
   const [hoverNode, setHoverNode] = useState<any>(null);
@@ -133,3 +133,5 @@ export const CognitiveGraph = forwardRef<CognitiveGraphRef, CognitiveGraphProps>
     </div>
   );
 });
+
+export default CognitiveGraph;

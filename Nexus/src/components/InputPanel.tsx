@@ -1,4 +1,5 @@
-import { Sparkles, Command, ArrowRight, Bot, RotateCw } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Command, ArrowRight, Bot, RotateCw } from 'lucide-react';
 import { useNexusStore } from '../store/nexusStore';
 import { useNotionSync } from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';

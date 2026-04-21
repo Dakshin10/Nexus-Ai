@@ -2,8 +2,14 @@ import React from 'react';
 import { Send, Bot, Loader2, Zap } from 'lucide-react';
 import { useNexusStore } from '../store/nexusStore';
 
-export const InputBox: React.FC = () => {
+interface InputBoxProps {
+  onProcess?: (text: string) => Promise<void>;
+  isLoading?: boolean;
+}
+
+export const InputBox: React.FC<InputBoxProps> = ({ onProcess, isLoading: externalLoading }) => {
   const { userInput, setUserInput, runAgent, agent } = useNexusStore();
+  const isLoading = externalLoading || agent.status === 'running';
 
   const handleRunAgent = async () => {
     if (!userInput) return;

@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { useNexusStore } from '../store/nexusStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CognitiveGraph, CognitiveGraphRef } from './CognitiveGraph';
+import CognitiveGraph from './CognitiveGraph';
+import type { CognitiveGraphRef } from './CognitiveGraph';
 import { 
   ArrowLeft, 
   X, 

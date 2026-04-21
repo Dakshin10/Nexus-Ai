@@ -177,7 +177,11 @@ export const useNotionPages = () => {
 
 export const useNotionImport = () => {
   return useMutation({
-    mutationFn: (data: { pageId: string, userId: string }) => api.importNotionPage(data.pageId, data.userId),
+    mutationFn: (args: string | { pageId: string, userId: string }) => {
+      const pageId = typeof args === 'string' ? args : args.pageId;
+      const userId = typeof args === 'string' ? 'user_nexus_1' : args.userId;
+      return api.importNotionPage(pageId, userId);
+    },
   });
 };
 

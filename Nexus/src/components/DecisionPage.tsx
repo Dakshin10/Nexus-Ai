@@ -11,7 +11,8 @@ import {
   TrendingUp,
   Brain,
   RotateCw,
-  Share2
+  Share2,
+  Cpu
 } from 'lucide-react';
 import { useNexusStore } from '../store/nexusStore';
 import { cn } from '../lib/utils';

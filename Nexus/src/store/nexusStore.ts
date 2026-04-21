@@ -2,16 +2,20 @@ import { create } from 'zustand';
 
 export type AgentStatus = "idle" | "running" | "completed" | "paused";
 
-interface AgentState {
+export interface AgentState {
   status: AgentStatus;
   step: "idle" | "fetching" | "processing" | "deciding" | "done";
-  steps: string[];      // ✅ Added for multi-step tracking
-  currentStep: string;  // ✅ Added for UI labeling
+  steps: string[];      
+  currentStep: string;  
   progress: number;
   result: any | null;
 }
 
 interface NexusState {
+  // User Identity
+  currentUser: { id: string; name: string };
+  setCurrentUser: (user: { id: string; name: string }) => void;
+
   // User Input
   userInput: string;
   setUserInput: (input: string) => void;
@@ -22,7 +26,7 @@ interface NexusState {
   updateAgent: (update: Partial<AgentState>) => void;
   runAgent: () => Promise<void>;
 
-  // Agent State (Flattened as requested)
+  // Agent State (Flattened)
   agentStatus: AgentStatus;
   agentSteps: string[];
   currentStepIndex: number;
@@ -52,23 +56,33 @@ interface NexusState {
     later: any[];
   };
   setTasks: (tasks: any[]) => void;
+  addTasks: (newTasks: any[]) => void; // RESTORED
   setBucketedTasks: (bucketed: NexusState['bucketedTasks']) => void;
 
-  // Connectivity
+  // Connectivity & Notion Data (RESTORED)
   isGmailConnected: boolean;
   setGmailConnected: (connected: boolean) => void;
   isNotionConnected: boolean;
   setNotionConnected: (connected: boolean) => void;
+  notionPages: any[];
+  setNotionPages: (pages: any[]) => void;
+  isLoadingNotion: boolean;
+  setLoadingNotion: (loading: boolean) => void;
   logs: { text: string; type: 'info' | 'agent' | 'success'; timestamp: string; id: string }[];
   
-  // UI Actions
+  // UI Actions (RESTORED)
   isGraphVisible: boolean;
+  isExternalPanelOpen: boolean;
   toggleGraph: () => void;
+  toggleExternalPanel: () => void;
   addLog: (text: string, type: 'info' | 'agent' | 'success') => void;
   clearLogs: () => void;
 }
 
 export const useNexusStore = create<NexusState>((set, get) => ({
+  currentUser: { id: 'user_nexus_1', name: 'Nexus User' },
+  setCurrentUser: (currentUser) => set({ currentUser }),
+
   userInput: '',
   setUserInput: (userInput) => set({ userInput }),
 
@@ -110,7 +124,7 @@ export const useNexusStore = create<NexusState>((set, get) => ({
   }),
 
   runAgent: async () => {
-    const { setBucketedTasks, addLog } = get();
+    const { setBucketedTasks, addLog, currentUser } = get();
     
     set((state) => ({ 
       agent: { ...state.agent, status: "running", step: "fetching", progress: 10, currentStep: "Data Harvest" },
@@ -123,7 +137,7 @@ export const useNexusStore = create<NexusState>((set, get) => ({
       const response = await fetch('http://localhost:3001/api/system/run-intelligence', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: 'user_nexus_1' })
+        body: JSON.stringify({ userId: currentUser.id })
       });
 
       set((state) => ({ 
@@ -136,6 +150,7 @@ export const useNexusStore = create<NexusState>((set, get) => ({
         setBucketedTasks(result.data);
         set((state) => ({ 
           agent: { 
+            ...get().agent,
             status: "completed", 
             step: "done", 
             progress: 100, 
@@ -158,7 +173,6 @@ export const useNexusStore = create<NexusState>((set, get) => ({
     }
   },
 
-  // Stream & Loading implementation
   streamOutput: [],
   isStreamLoading: false,
   setStreamOutput: (streamOutput) => set({ streamOutput }),
@@ -182,15 +196,22 @@ export const useNexusStore = create<NexusState>((set, get) => ({
     later: [],
   },
   setTasks: (tasks) => set({ tasks }),
+  addTasks: (newTasks) => set((state) => ({ tasks: [...state.tasks, ...newTasks] })),
   setBucketedTasks: (bucketedTasks) => set({ bucketedTasks }),
 
   isGmailConnected: false,
   setGmailConnected: (isGmailConnected) => set({ isGmailConnected }),
   isNotionConnected: false,
   setNotionConnected: (isNotionConnected) => set({ isNotionConnected }),
+  notionPages: [],
+  setNotionPages: (notionPages) => set({ notionPages }),
+  isLoadingNotion: false,
+  setLoadingNotion: (isLoadingNotion) => set({ isLoadingNotion }),
 
   isGraphVisible: false,
+  isExternalPanelOpen: false,
   toggleGraph: () => set((state) => ({ isGraphVisible: !state.isGraphVisible })),
+  toggleExternalPanel: () => set((state) => ({ isExternalPanelOpen: !state.isExternalPanelOpen })),
   
   logs: [],
   addLog: (text, type) => set((state) => ({ 
