@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # NEXUS ◈ Agentic AI Platform
 
 > **Transforming Raw Thought into Structured Intelligence.**
@@ -118,3 +119,6 @@ MIT License. See [LICENSE](LICENSE) for details.
 ---
 
 **Built with ❤️ by the NEXUS Engineering Team.**
+=======
+# Nexus
+>>>>>>> 2d2e5576262962bc84b16ced03b4fe55d1d08f34
