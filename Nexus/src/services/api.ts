@@ -52,6 +52,50 @@ export const api = {
     const res = await fetch(`${API_BASE}/integrations/sync`, { method: 'POST' });
     return res.json();
   },
+
+  // Notion
+  connectNotion: async () => {
+    const res = await fetch(`${API_BASE}/external/notion/connect`, { method: 'POST' });
+    return res.json();
+  },
+
+  getNotionPages: async () => {
+    const res = await fetch(`${API_BASE}/external/notion/pages`);
+    return res.json();
+  },
+
+  importNotionPage: async (pageId: string) => {
+    const res = await fetch(`${API_BASE}/external/notion/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ page_id: pageId }),
+    });
+    return res.json();
+  },
+  
+  syncNotionWorkspace: async () => {
+    try {
+      const res = await fetch(`${API_BASE}/orchestrate/unified-sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      const text = await res.text();
+      if (!res.ok) {
+        throw new Error(`Sync failed [${res.status}]: ${text}`);
+      }
+
+      try {
+        return JSON.parse(text);
+      } catch (parseError) {
+        console.error('Invalid JSON Response from unified-sync:', text);
+        throw new Error('Server returned malformed data');
+      }
+    } catch (error: any) {
+      console.error('[API] Unified Sync Error:', error.message);
+      throw error;
+    }
+  },
 };
 
 // Hooks
@@ -60,6 +104,12 @@ export const useEmails = (analyze = false) => {
     queryKey: ['emails', analyze],
     queryFn: () => api.getEmails(analyze),
     refetchInterval: 60000, // Refresh every minute
+  });
+};
+
+export const useNotionSync = () => {
+  return useMutation({
+    mutationFn: () => api.syncNotionWorkspace(),
   });
 };
 
@@ -86,5 +136,25 @@ export const useAgentMutation = () => {
 export const useSyncMutation = () => {
   return useMutation({
     mutationFn: () => api.triggerSync(),
+  });
+};
+
+export const useNotionConnect = () => {
+  return useMutation({
+    mutationFn: () => api.connectNotion(),
+  });
+};
+
+export const useNotionPages = () => {
+  return useQuery({
+    queryKey: ['notion-pages'],
+    queryFn: () => api.getNotionPages(),
+    enabled: false, // Trigger manually or only if connected
+  });
+};
+
+export const useNotionImport = () => {
+  return useMutation({
+    mutationFn: (pageId: string) => api.importNotionPage(pageId),
   });
 };

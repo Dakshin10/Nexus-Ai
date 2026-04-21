@@ -98,28 +98,100 @@ class NotesService {
   }
 
   /**
-   * Fetch Notion Page
+   * List Searchable Pages from Notion
+   * Uses search API and caches results.
+   */
+  async listPages() {
+    const cacheKey = 'notion_pages_search';
+    
+    try {
+      // 1. Check Cache
+      const cached = await cacheService.get(cacheKey);
+      if (cached) {
+        logger.log('notes-service', 'Returning cached Notion pages list.');
+        return cached;
+      }
+
+      // 2. Search Notion
+      const response = await this.notion.search({
+        filter: { property: 'object', value: 'page' },
+        sort: { direction: 'descending', timestamp: 'last_edited_time' },
+        page_size: 15
+      });
+
+      const pages = response.results.map(page => {
+        const titleProp = page.properties.title || Object.values(page.properties).find(p => p.type === 'title');
+        const title = titleProp?.title[0]?.plain_text || 'Untitled Page';
+        
+        return {
+          id: page.id,
+          title,
+          lastEdited: page.last_edited_time,
+          url: page.url,
+          preview: `Notion page created/updated at ${new Date(page.last_edited_time).toLocaleString()}`
+        };
+      });
+
+      // 3. Cache for 10 minutes
+      await cacheService.set(cacheKey, pages, 600);
+      
+      return pages;
+    } catch (error) {
+      logger.error('notes-service', `Notion List Error: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch Notion Page & Extract Content
    */
   async fetchNotionPage(pageId) {
     try {
       const response = await this.notion.pages.retrieve({ page_id: pageId });
-      const blocks = await this.notion.blocks.children.list({ block_id: pageId });
       
-      const textContent = blocks.results
-        .filter(b => b.type === 'paragraph' || b.type === 'heading_1' || b.type === 'heading_2' || b.type === 'heading_3')
-        .map(b => {
-          const type = b.type;
-          return b[type].rich_text.map(t => t.plain_text).join('');
-        }).join('\n');
+      // Recursive block extraction
+      const content = await this.extractBlocks(pageId);
+      
+      // Title extraction
+      const titleProp = response.properties.title || Object.values(response.properties).find(p => p.type === 'title');
+      const title = titleProp?.title[0]?.plain_text || 'Untitled Notion Page';
 
       return {
-        title: response.properties.title?.title[0]?.plain_text || 'Untitled Notion Page',
-        content: textContent,
+        id: pageId,
+        title,
+        content,
         source: 'notion'
       };
     } catch (error) {
-      logger.error('notes-service', `Notion Fetch Error: ${error.message}`);
+      logger.error('notes-service', `Notion Extraction Error: ${error.message}`);
       throw error;
+    }
+  }
+
+  /**
+   * Recursive Block Extractor
+   */
+  async extractBlocks(blockId) {
+    try {
+      const blocks = await this.notion.blocks.children.list({ block_id: blockId });
+      let text = '';
+
+      for (const block of blocks.results) {
+        const type = block.type;
+        if (block[type]?.rich_text) {
+          text += block[type].rich_text.map(t => t.plain_text).join('') + '\n';
+        }
+        
+        // Handle children (nested blocks)
+        if (block.has_children) {
+          const childText = await this.extractBlocks(block.id);
+          text += childText;
+        }
+      }
+      return text;
+    } catch (e) {
+      logger.error('notes-service', `Block extraction failed for ${blockId}: ${e.message}`);
+      return '';
     }
   }
 
@@ -166,7 +238,8 @@ class NotesService {
 
     return {
       title: note.title,
-      summary: note.content.substring(0, 200) + '...',
+      summary: note.content.substring(0, 300) + '...',
+      content: note.content,
       tasks,
       ideas,
       decisions,

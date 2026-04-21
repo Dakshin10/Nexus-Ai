@@ -34,12 +34,14 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     const text = await parserService.parseFile(req.file);
     
+    // Register for session intelligence
+    parserService.addToRegistry(req.file.originalname, text);
+    
     res.json({
-      message: 'File processed successfully',
+      message: 'File processed and indexed for sync',
       filename: req.file.originalname,
       size: req.file.size,
       parsed_text: text,
-      // Optional: Return a snippet for the UI
       preview: text.substring(0, 500) + '...'
     });
   } catch (error) {

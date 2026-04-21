@@ -12,6 +12,7 @@ import { useEmails } from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GmailConnectButton } from './GmailConnectButton';
 import { NotionConnectButton } from './NotionConnectButton';
+import { NotionList } from './NotionList';
 
 const EmailCard = ({ email }: any) => (
   <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-all group">
@@ -31,8 +32,8 @@ const EmailCard = ({ email }: any) => (
 );
 
 export const ExternalPanel: React.FC = () => {
-  const { isExternalPanelOpen, toggleExternalPanel, isGmailConnected, isNotionConnected } = useNexusStore();
-  const { data: emailData, isLoading } = useEmails(true);
+  const { isExternalPanelOpen, toggleExternalPanel, isGmailConnected, isNotionConnected, notionPages, isLoadingNotion } = useNexusStore();
+  const { data: emailData, isLoading: isLoadingEmails } = useEmails(true);
 
   return (
     <AnimatePresence>
@@ -42,7 +43,7 @@ export const ExternalPanel: React.FC = () => {
           animate={{ x: 0 }}
           exit={{ x: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className="fixed top-0 right-0 h-full w-96 bg-black/40 backdrop-blur-3xl border-l border-white/5 z-30 flex flex-col"
+          className="fixed top-0 right-0 h-full w-96 bg-black/80 backdrop-blur-3xl border-l border-white/5 z-30 flex flex-col shadow-2xl"
         >
           <div className="h-16 flex items-center justify-between px-6 border-b border-white/5">
             <h3 className="text-sm font-bold text-white uppercase tracking-widest">External Data</h3>
@@ -54,7 +55,7 @@ export const ExternalPanel: React.FC = () => {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-8">
+          <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
             {/* Connection Section */}
             {(!isGmailConnected || !isNotionConnected) && (
               <section className="space-y-4">
@@ -66,9 +67,6 @@ export const ExternalPanel: React.FC = () => {
                   {!isGmailConnected && <GmailConnectButton />}
                   {!isNotionConnected && <NotionConnectButton />}
                 </div>
-                <p className="text-[10px] text-slate-600 text-center leading-relaxed">
-                  Link your workspace to allow NEXUS to ingest communications and proactively manage your tasks.
-                </p>
               </section>
             )}
 
@@ -76,19 +74,19 @@ export const ExternalPanel: React.FC = () => {
             {isGmailConnected && (
               <section className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-indigo-400">
-                    <Mail className="w-4 h-4" />
-                    <h4 className="text-xs font-bold uppercase tracking-wider">Gmail</h4>
+                  <div className="flex items-center gap-2 text-indigo-400 font-bold uppercase tracking-widest text-[10px]">
+                    <Mail className="w-3.5 h-3.5" />
+                    <h4>Gmail Pipeline</h4>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 text-[10px] font-bold text-indigo-400 border border-indigo-500/20">
-                    {isLoading ? '...' : emailData?.emails?.length || 0}
+                  <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 text-[9px] font-bold text-indigo-400 border border-indigo-500/20">
+                    {isLoadingEmails ? '...' : emailData?.emails?.length || 0}
                   </span>
                 </div>
                 
                 <div className="space-y-3">
-                  {isLoading ? (
+                  {isLoadingEmails ? (
                     Array(3).fill(0).map((_, i) => (
-                      <div key={i} className="h-24 rounded-2xl bg-white/[0.02] animate-pulse" />
+                      <div key={i} className="h-24 rounded-2xl bg-white/[0.02] animate-pulse border border-white/5" />
                     ))
                   ) : (
                     emailData?.emails?.map((email: any) => (
@@ -99,25 +97,26 @@ export const ExternalPanel: React.FC = () => {
               </section>
             )}
 
-            {/* Documents Section */}
-            <section className="space-y-4">
+            {/* Notion Section */}
+            {isNotionConnected && (
+              <section className="space-y-6 pt-4 border-t border-white/5">
+                <div className="flex items-center gap-2 text-amber-500 font-bold uppercase tracking-widest text-[10px]">
+                  <StickyNote className="w-3.5 h-3.5" />
+                  <h4>Notion Workspace</h4>
+                </div>
+                
+                <NotionList />
+              </section>
+            )}
+
+            {/* Documents Section (Future) */}
+            <section className="space-y-4 pt-4 border-t border-white/5 opacity-40">
               <div className="flex items-center gap-2 text-slate-400">
                 <FileText className="w-4 h-4" />
                 <h4 className="text-xs font-bold uppercase tracking-wider">Documents</h4>
               </div>
               <div className="p-8 rounded-2xl border border-dashed border-white/5 text-center">
-                <p className="text-[10px] text-slate-600 font-medium uppercase tracking-widest">No active documents</p>
-              </div>
-            </section>
-
-            {/* Notes Section */}
-            <section className="space-y-4">
-              <div className="flex items-center gap-2 text-slate-400">
-                <StickyNote className="w-4 h-4" />
-                <h4 className="text-xs font-bold uppercase tracking-wider">Recent Notes</h4>
-              </div>
-              <div className="p-8 rounded-2xl border border-dashed border-white/5 text-center">
-                <p className="text-[10px] text-slate-600 font-medium uppercase tracking-widest">No synced notes</p>
+                <p className="text-[10px] text-slate-600 font-medium uppercase tracking-widest">Static Analysis Pending</p>
               </div>
             </section>
           </div>

@@ -3,6 +3,22 @@ const pdf = require('pdf-parse');
 const mammoth = require('mammoth');
 
 class ParserService {
+  constructor() {
+    this.recentDocs = [];
+  }
+
+  /**
+   * Register a parsed document for session intelligence
+   */
+  addToRegistry(filename, text) {
+    this.recentDocs.push({ filename, text, timestamp: Date.now() });
+    // Keep only last 5 docs to avoid memory bloat in demo
+    if (this.recentDocs.length > 5) this.recentDocs.shift();
+  }
+
+  getRegistryContent() {
+    return this.recentDocs;
+  }
   /**
    * Parse uploaded file based on mimetype
    */

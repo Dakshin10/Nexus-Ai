@@ -15,6 +15,8 @@ router.post('/process', externalController.handleProcess);
 router.post('/analyze', externalController.handleAnalyzeBatch);
 
 // Notes Integration
+router.post('/notion/connect', notesController.handleNotionConnect);
+router.get('/notion/pages', notesController.handleListPages);
 router.post('/notion/import', notesController.handleNotionImport);
 router.post('/obsidian/upload', notesController.handleObsidianUpload);
 

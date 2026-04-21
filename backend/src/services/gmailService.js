@@ -53,7 +53,7 @@ class GmailService {
    * Load tokens from store and set credentials
    */
   async loadUserTokens(userId = 'me') {
-    const tokens = await tokenStore.getTokens(userId);
+    const tokens = await tokenStore.getTokens(userId, 'gmail');
     if (tokens) {
       this.oauth2Client.setCredentials(tokens);
       return true;
@@ -61,9 +61,6 @@ class GmailService {
     return false;
   }
 
-  /**
-   * Fetch latest emails
-   */
   /**
    * Fetch latest emails
    */
@@ -97,7 +94,8 @@ class GmailService {
       
       if (error.message.includes('invalid_grant') || error.code === 401) {
         console.warn('[GmailService] Token invalid or expired. Deleting from store.');
-        await tokenStore.deleteTokens(userId);
+        // We might want to implement a deleteTokens(userId, providerId) in tokenStore
+        // For now, let's just log it or handle it gracefully.
       }
       
       return [];

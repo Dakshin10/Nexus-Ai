@@ -1,21 +1,53 @@
-/**
- * Notes Controller
- */
 const notesService = require('../services/notesService');
+const notionAIEngine = require('../engines/external/notionAIEngine');
 const logger = require('../utils/logger');
+
+exports.handleNotionConnect = async (req, res) => {
+  try {
+    const isValid = await notesService.validateConnection();
+    if (isValid) {
+      res.json({ connected: true, message: 'Notion integration ready.' });
+    } else {
+      res.status(401).json({ connected: false, error: 'Invalid Notion API Key' });
+    }
+  } catch (error) {
+    logger.error('notes-controller', `Connect Error: ${error.message}`);
+    res.status(500).json({ error: 'Notion connection failed' });
+  }
+};
+
+exports.handleListPages = async (req, res) => {
+  try {
+    const pages = await notesService.listPages();
+    res.json(pages);
+  } catch (error) {
+    logger.error('notes-controller', `List Pages Error: ${error.message}`);
+    res.status(500).json({ error: 'Failed to list Notion pages' });
+  }
+};
 
 exports.handleNotionImport = async (req, res) => {
   const { page_id } = req.body;
   if (!page_id) return res.status(400).json({ error: 'page_id is required' });
 
   try {
+    // 1. Fetch full content
     const page = await notesService.fetchNotionPage(page_id);
-    const result = notesService.processNote(page);
-    res.json(result);
+    
+    // 2. Extract tasks using AI
+    const tasks = await notionAIEngine.process(page);
+    
+    res.json({
+      success: true,
+      page_title: page.title,
+      tasks: tasks
+    });
   } catch (error) {
+    logger.error('notes-controller', `Import Error: ${error.message}`);
     res.status(500).json({ error: 'Failed to import Notion page' });
   }
 };
+
 
 exports.handleObsidianUpload = async (req, res) => {
   // Assuming file is uploaded and path is provided
@@ -30,3 +62,4 @@ exports.handleObsidianUpload = async (req, res) => {
     res.status(500).json({ error: 'Failed to parse Obsidian file' });
   }
 };
+

@@ -62,35 +62,56 @@ function generateMockResponse(stage, input) {
       return { summary: 'Mocked summary', urgent: [], top_priority: 'Mocked priority', recommended_action: 'Mocked action' };
     case 'load':
       return { cognitive_load: { score: 50, status: 'yellow' } };
-    case 'email-preprocessing':
-      // Intelligent mock based on input keywords
-      const text = `${input.subject} ${input.content}`.toLowerCase();
-      if (text.includes('meeting') || text.includes('call') || text.includes('schedule')) {
-        return { task: `Schedule meeting with ${input.sender}`, priority: 'high', intent: 'MEETING', deadline: 'Tomorrow', context: input.subject };
+    case 'notion-extraction': {
+      const text = `${input.title} ${input.content}`.toLowerCase();
+      const tasks = [];
+
+      // Heuristic 1: Look for explicit TODOs
+      if (text.includes('todo') || text.includes('task') || text.includes('action')) {
+        tasks.push({
+          task: `Complete action items from ${input.title}`,
+          priority: 'DO_NEXT',
+          reasoning: 'Explicit task markers detected in note.',
+          deadline: null,
+          source: 'notion'
+        });
       }
-      if (text.includes('review') || text.includes('feedback') || text.includes('check')) {
-        return { task: `Review document: ${input.subject}`, priority: 'medium', intent: 'REVIEW', deadline: null, context: 'Feedback requested' };
+
+      // Heuristic 2: Urgency
+      if (text.includes('urgent') || text.includes('asap') || text.includes('immediately')) {
+        tasks.push({
+          task: `Address urgent matters in ${input.title}`,
+          priority: 'DO_NOW',
+          reasoning: 'High-urgency keywords detected (urgent/asap).',
+          deadline: 'ASAP',
+          source: 'notion'
+        });
       }
-      if (text.includes('urgent') || text.includes('immediately') || text.includes('asap')) {
-        return { task: `Action required: ${input.subject}`, priority: 'high', intent: 'ACTION', deadline: 'ASAP', context: input.content.slice(0, 50) };
+
+      // Heuristic 3: Late-stage / optional
+      if (text.includes('maybe') || text.includes('later') || text.includes('future')) {
+        tasks.push({
+          task: `Review future ideas from ${input.title}`,
+          priority: 'LATER',
+          reasoning: 'Optional or future-dated context found.',
+          deadline: 'TBD',
+          source: 'notion'
+        });
       }
-      // If none of the above, simulate an informational email (return empty for filter)
-      return {};
-    case 'cognitive-extraction':
-      return {
-        ideas: [
-          { text: "Decentralized data mesh architecture for Nexus", impact: "high" },
-          { text: "Framer Motion integration for fluid UI state", impact: "medium" }
-        ],
-        tasks: [
-          { task: "Update system documentation", priority: "low", deadline: "Friday" },
-          { task: "Optimize Redis connection pool", priority: "medium", deadline: "ASAP" }
-        ],
-        decisions: [
-          { decision: "Adopt shadcn/ui for component library", reason: "Productivity and accessibility" },
-          { decision: "Use Node.js for backend orchestration", reason: "Async performance" }
-        ]
-      };
+
+      // Fallback if no heuristics match
+      if (tasks.length === 0) {
+        tasks.push({
+          task: `Analyze page: ${input.title}`,
+          priority: 'DO_NEXT',
+          reasoning: 'General page analysis for context.',
+          deadline: null,
+          source: 'notion'
+        });
+      }
+
+      return tasks.slice(0, 5); // Max 5 tasks per note
+    }
     default:
       return {};
   }

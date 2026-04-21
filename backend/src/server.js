@@ -23,6 +23,7 @@ const gmailRoutes = require('./routes/gmailRoutes');
 const integrationsRoutes = require('./routes/integrationsRoutes');
 const syncRoutes = require('./routes/syncRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const authRoutes = require('./routes/authRoutes');
 const logger = require('./utils/logger');
 
 const app = express();
